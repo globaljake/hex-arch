@@ -1,0 +1,21 @@
+{
+  "name": "hex-arch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "autoprefixer": "^10.3.7",
+    "elm": "^0.19.1-5",
+    "postcss": "^8.3.9",
+    "tailwindcss": "^3.0.15",
+    "vite": "^2.9.5",
+    "vite-plugin-elm": "^2.6.1"
+  }
+}

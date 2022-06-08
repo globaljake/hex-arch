@@ -1,0 +1,18 @@
+# Desktop Services Store on macOS
+.DS_Store
+
+# Production Build
+dist
+
+# NPM
+node_modules
+
+# Elm
+elm-stuff
+
+# Env
+.env*
+
+# Visual Studio Code
+.vscode/*
+
