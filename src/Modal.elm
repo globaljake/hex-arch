@@ -1,14 +1,14 @@
-port module Modal exposing (Config(..), Modal, Msg, close, empty, init, open, subscriptions, update, view)
+port module Modal exposing (Modal, Msg, Variant(..), close, init, open, subscriptions, update, view)
 
-import Application.Instruction as Instruction exposing (Instruction)
+import Api.HexArch.Data.Thing exposing (Thing)
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Decode
 import Json.Encode as Encode
 import Modal.Auth as Auth
-import Modal.BuyCoins as BuyCoins
-import Modal.EncoderSetup as EncoderSetup
+import Modal.EditProfile as EditProfile
+import Port
 import Session exposing (Session)
 
 
@@ -19,42 +19,31 @@ import Session exposing (Session)
 type Modal
     = Hidden
     | Auth Auth.Model
-    | BuyCoins BuyCoins.Model
-    | EncoderSetup EncoderSetup.Model
+    | EditProfile EditProfile.Model
 
 
-type Config
-    = AuthConfig Auth.AuthType
-    | BuyCoinsConfig ()
-    | EncoderSetupConfig ()
+type Variant
+    = AuthModal Auth.Variant
+    | EditProfileModal
 
 
 
 -- INITIAL STATE
 
 
-empty : Modal
-empty =
-    Hidden
-
-
-init : Maybe Config -> ( Modal, Cmd Msg )
-init maybeConfig =
-    case maybeConfig of
-        Nothing ->
-            ( Hidden, Cmd.none )
-
-        Just (AuthConfig config) ->
-            Auth.init config
+init : Maybe Variant -> ( Modal, Cmd Msg )
+init maybeVariant =
+    case maybeVariant of
+        Just (AuthModal subVariant) ->
+            Auth.init subVariant
                 |> Tuple.mapBoth Auth (Cmd.map AuthMsg)
 
-        Just (BuyCoinsConfig config) ->
-            BuyCoins.init config
-                |> Tuple.mapBoth BuyCoins (Cmd.map BuyCoinsMsg)
+        Just EditProfileModal ->
+            EditProfile.init
+                |> Tuple.mapBoth EditProfile (Cmd.map EditProfileMsg)
 
-        Just (EncoderSetupConfig config) ->
-            EncoderSetup.init config
-                |> Tuple.mapBoth EncoderSetup (Cmd.map EncoderSetupMsg)
+        Nothing ->
+            ( Hidden, Cmd.none )
 
 
 
@@ -62,63 +51,40 @@ init maybeConfig =
 
 
 type Msg
-    = GotInstruction (Result Decode.Error (Instruction Config))
+    = GotInstruction (Result Decode.Error (Port.Instruction Variant))
     | AuthMsg Auth.Msg
-    | BuyCoinsMsg BuyCoins.Msg
-    | EncoderSetupMsg EncoderSetup.Msg
-
-
-type MsgRequest
-    = InitAuth ()
-    | InitBuyCoins ()
-    | InitEncoderSetup ()
-
-
-type MsgResponse
-    = GotSomething
+    | EditProfileMsg EditProfile.Msg
 
 
 
--- Need to think of name for anyone calling a command that the child will listen to
--- Currently named instruction ... but this is the api for the microservice essentially. Request????
--- Need to think of the name for the messages that a module outside of this one will listen to
--- this is a replacement for ExtMsg to be more like hexagonal architecture
 -- TRANSITION
 
 
 update : Session -> Msg -> Modal -> ( Modal, Cmd Msg )
 update session msg model =
     case ( msg, model ) of
-        ( GotInstruction (Ok instruction), Hidden ) ->
+        ( GotInstruction (Ok instruction), _ ) ->
             updateInstruction instruction model
 
         ( AuthMsg subMsg, Auth subModel ) ->
             Auth.update subMsg subModel
                 |> Tuple.mapBoth Auth (Cmd.map AuthMsg)
 
-        ( BuyCoinsMsg subMsg, BuyCoins subModel ) ->
-            BuyCoins.update subMsg subModel
-                |> Tuple.mapBoth BuyCoins (Cmd.map BuyCoinsMsg)
-
-        ( EncoderSetupMsg subMsg, EncoderSetup subModel ) ->
-            EncoderSetup.update subMsg subModel
-                |> Tuple.mapBoth EncoderSetup (Cmd.map EncoderSetupMsg)
+        ( EditProfileMsg subMsg, EditProfile subModel ) ->
+            EditProfile.update close subMsg subModel
+                |> Tuple.mapBoth EditProfile (Cmd.map EditProfileMsg)
 
         _ ->
             ( model, Cmd.none )
 
 
-updateInstruction : Instruction Config -> Modal -> ( Modal, Cmd Msg )
+updateInstruction : Port.Instruction Variant -> Modal -> ( Modal, Cmd Msg )
 updateInstruction instruction model =
-    case instruction of
-        Instruction.Add config ->
-            if model == Hidden then
-                init (Just config)
+    case ( instruction, model ) of
+        ( Port.Add variant, Hidden ) ->
+            init (Just variant)
 
-            else
-                ( model, Cmd.none )
-
-        Instruction.Clear ->
+        ( Port.Clear, _ ) ->
             ( Hidden, Cmd.none )
 
         _ ->
@@ -137,15 +103,10 @@ view modal =
                 |> viewContent
                 |> Html.map AuthMsg
 
-        BuyCoins subModel ->
-            BuyCoins.view subModel
+        EditProfile subModel ->
+            EditProfile.view subModel
                 |> viewContent
-                |> Html.map BuyCoinsMsg
-
-        EncoderSetup subModel ->
-            EncoderSetup.view subModel
-                |> viewContent
-                |> Html.map EncoderSetupMsg
+                |> Html.map EditProfileMsg
 
         Hidden ->
             Html.text ""
@@ -157,66 +118,68 @@ viewContent content =
 
 
 
--- PORTS
+-- INSTRUCTIONS
 
 
 port modalSendInstruction : Encode.Value -> Cmd msg
 
 
-port modalReceiveInstruction : (Encode.Value -> msg) -> Sub msg
-
-
-open : Config -> Cmd msg
-open config =
-    modalSendInstruction (Instruction.encode encodeConfig (Instruction.Add config))
+open : Variant -> Cmd msg
+open variant =
+    modalSendInstruction (Port.encodeInstruction encodeVariant (Port.Add variant))
 
 
 close : Cmd msg
 close =
-    modalSendInstruction (Instruction.encode encodeConfig Instruction.Clear)
+    modalSendInstruction (Port.encodeInstruction (\_ -> Encode.null) Port.Clear)
 
 
-subscriptions : Sub Msg
-subscriptions =
-    modalReceiveInstruction (GotInstruction << Decode.decodeValue (Instruction.decoder decoderConfig))
+port modalReceiveInstruction : (Encode.Value -> msg) -> Sub msg
 
 
+instructions : (Result Decode.Error (Port.Instruction Variant) -> Msg) -> Sub Msg
+instructions tagger =
+    modalReceiveInstruction
+        (tagger << Decode.decodeValue (Port.decoderInstruction decoderVariant))
 
--- ADAPTERS
 
-
-encodeConfig : Config -> Encode.Value
-encodeConfig config =
-    case config of
-        AuthConfig subConfig ->
+encodeVariant : Variant -> Encode.Value
+encodeVariant variant =
+    case variant of
+        AuthModal subVariant ->
             Encode.object
-                [ ( "constructor", Encode.string "AuthConfig" )
-                , ( "payload", Auth.encodeAuthType subConfig )
+                [ ( "constructor", Encode.string "AuthModal" )
+                , ( "payload", Auth.encodeVariant subVariant )
                 ]
 
-        BuyCoinsConfig () ->
-            Encode.object [ ( "constructor", Encode.string "BuyCoinsConfig" ) ]
-
-        EncoderSetupConfig () ->
-            Encode.object [ ( "constructor", Encode.string "EncoderSetupConfig" ) ]
+        EditProfileModal ->
+            Encode.object [ ( "constructor", Encode.string "EditProfileModal" ) ]
 
 
-decoderConfig : Decode.Decoder Config
-decoderConfig =
+decoderVariant : Decode.Decoder Variant
+decoderVariant =
     Decode.field "constructor" Decode.string
         |> Decode.andThen
             (\s ->
                 case s of
-                    "AuthConfig" ->
-                        Decode.succeed AuthConfig
-                            |> Decode.required "payload" Auth.decoderAuthType
+                    "AuthModal" ->
+                        Decode.succeed AuthModal
+                            |> Decode.required "payload" Auth.decoderVariant
 
-                    "BuyCoinsConfig" ->
-                        Decode.succeed (BuyCoinsConfig ())
-
-                    "EncoderSetupConfig" ->
-                        Decode.succeed (EncoderSetupConfig ())
+                    "EditProfileModal" ->
+                        Decode.succeed EditProfileModal
 
                     _ ->
-                        Decode.fail "Not a type constructor for Modal.ModalConfig"
+                        Decode.fail "Not a type constructor for Modal.Variant"
             )
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Sub Msg
+subscriptions =
+    Sub.batch
+        [ instructions GotInstruction
+        ]

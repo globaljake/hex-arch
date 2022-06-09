@@ -1,7 +1,7 @@
 import "./index.css";
 
 import { Elm } from "./Main.elm";
-import ModuleRequest from "./ModuleRequest";
+import Port from "./Port";
 import Session from "./Session";
 
 const flags = { viewer: Session.getViewer() };
@@ -37,7 +37,13 @@ const app = Elm.Main.init({
   flags: flags,
 });
 
-ModuleRequest.relay(app, "sessionSendRequest", "sessionReceiveRequest");
-ModuleRequest.relay(app, "modalSendInstruction", "modalReceiveInstruction");
+//  Instructions
+Port.instruction(app, "session");
+Port.instruction(app, "modal");
+Port.instruction(app, "toast");
+
+// Events
+Port.event(app, "session");
+Port.event(app, "editProfile");
 
 Session.start(app);

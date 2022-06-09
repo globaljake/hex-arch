@@ -1,6 +1,6 @@
-module Modal.Auth exposing (AuthType(..), Model, Msg, decoderAuthType, encodeAuthType, init, update, view)
+module Modal.Auth exposing (Model, Msg, Variant(..), decoderVariant, encodeVariant, init, update, view)
 
-import Html exposing (Html)
+import Html exposing (Html, var)
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -16,21 +16,21 @@ type Model
 type alias Internal =
     { username : String
     , password : String
-    , authType : AuthType
+    , variant : Variant
     }
 
 
-type AuthType
+type Variant
     = SignUp
     | SignIn
 
 
-init : AuthType -> ( Model, Cmd Msg )
-init authType =
+init : Variant -> ( Model, Cmd Msg )
+init variant =
     ( Model
         { username = ""
         , password = ""
-        , authType = authType
+        , variant = variant
         }
     , Cmd.none
     )
@@ -69,9 +69,9 @@ view model =
 -- ADAPTERS
 
 
-encodeAuthType : AuthType -> Encode.Value
-encodeAuthType authType =
-    case authType of
+encodeVariant : Variant -> Encode.Value
+encodeVariant variant =
+    case variant of
         SignIn ->
             Encode.object [ ( "constructor", Encode.string "SignIn" ) ]
 
@@ -79,8 +79,8 @@ encodeAuthType authType =
             Encode.object [ ( "constructor", Encode.string "SignUp" ) ]
 
 
-decoderAuthType : Decode.Decoder AuthType
-decoderAuthType =
+decoderVariant : Decode.Decoder Variant
+decoderVariant =
     Decode.field "constructor" Decode.string
         |> Decode.andThen
             (\s ->
@@ -92,5 +92,5 @@ decoderAuthType =
                         Decode.succeed SignUp
 
                     _ ->
-                        Decode.fail "Not a type constructor for Modal.Auth.AuthType"
+                        Decode.fail "Not a type constructor for Modal.Auth.Variant"
             )

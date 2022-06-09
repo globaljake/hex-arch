@@ -1,11 +1,11 @@
-port module Toast exposing (Config(..), Msg, Toast, add, clear, empty, init, remove, subscriptions, update, view)
+port module Toast exposing (Msg, Toast, Variant(..), add, clear, empty, init, remove, subscriptions, update, view)
 
-import Application.Instruction as Instruction exposing (Instruction)
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Decode
 import Json.Encode as Encode
+import Port
 
 
 
@@ -13,10 +13,10 @@ import Json.Encode as Encode
 
 
 type Toast
-    = Toast (List Config)
+    = Toast (List Variant)
 
 
-type Config
+type Variant
     = Hey
     | LookAtMe
     | ImAToast
@@ -27,8 +27,8 @@ empty =
     Toast []
 
 
-init : Config -> ( Toast, Cmd Msg )
-init config =
+init : Variant -> ( Toast, Cmd Msg )
+init variant =
     ( Toast [], Cmd.none )
 
 
@@ -37,7 +37,7 @@ init config =
 
 
 type Msg
-    = GotInstruction (Result Decode.Error (Instruction Config))
+    = GotInstruction (Result Decode.Error (Port.Instruction Variant))
 
 
 
@@ -55,16 +55,16 @@ update msg (Toast toastConfigs) =
                 ( toastConfigs, Cmd.none )
 
 
-updateInstruction : Instruction Config -> List Config -> ( List Config, Cmd Msg )
+updateInstruction : Port.Instruction Variant -> List Variant -> ( List Variant, Cmd Msg )
 updateInstruction instruction toastConfigs =
     case instruction of
-        Instruction.Add toast ->
+        Port.Add toast ->
             ( toast :: toastConfigs, Cmd.none )
 
-        Instruction.Remove toast ->
+        Port.Remove toast ->
             ( List.filter ((/=) toast) toastConfigs, Cmd.none )
 
-        Instruction.Clear ->
+        Port.Clear ->
             ( [], Cmd.none )
 
 
@@ -73,13 +73,13 @@ updateInstruction instruction toastConfigs =
 
 
 view : Toast -> Html Msg
-view (Toast toastConfigs) =
-    Html.div [ Attributes.class "flex flex-col space-y-4" ] (List.map viewToast toastConfigs)
+view (Toast variants) =
+    Html.div [ Attributes.class "flex flex-col space-y-4" ] (List.map viewToast variants)
 
 
-viewToast : Config -> Html msg
-viewToast config =
-    case config of
+viewToast : Variant -> Html msg
+viewToast variant =
+    case variant of
         Hey ->
             viewToastItem { title = "hey", description = "Wassuuupp man" }
 
@@ -108,31 +108,32 @@ port toastSendMessage : Encode.Value -> Cmd msg
 port toastMessageReceiver : (Encode.Value -> msg) -> Sub msg
 
 
-add : Config -> Cmd msg
+add : Variant -> Cmd msg
 add config =
-    toastSendMessage (Instruction.encode encode (Instruction.Add config))
+    toastSendMessage (Port.encodeInstruction encode (Port.Add config))
 
 
-remove : Config -> Cmd msg
+remove : Variant -> Cmd msg
 remove config =
-    toastSendMessage (Instruction.encode encode (Instruction.Remove config))
+    toastSendMessage (Port.encodeInstruction encode (Port.Remove config))
 
 
 clear : Cmd msg
 clear =
-    toastSendMessage (Instruction.encode encode Instruction.Clear)
+    toastSendMessage (Port.encodeInstruction encode Port.Clear)
 
 
 subscriptions : Toast -> Sub Msg
 subscriptions toast =
-    toastMessageReceiver (GotInstruction << Decode.decodeValue (Instruction.decoder decoder))
+    toastMessageReceiver
+        (GotInstruction << Decode.decodeValue (Port.decoderInstruction decoder))
 
 
 
 -- ADAPTERS
 
 
-encode : Config -> Encode.Value
+encode : Variant -> Encode.Value
 encode config =
     case config of
         Hey ->
@@ -145,7 +146,7 @@ encode config =
             Encode.object [ ( "constructor", Encode.string "ImAToast" ) ]
 
 
-decoder : Decode.Decoder Config
+decoder : Decode.Decoder Variant
 decoder =
     Decode.field "constructor" Decode.string
         |> Decode.andThen

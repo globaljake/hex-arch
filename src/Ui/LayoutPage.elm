@@ -56,7 +56,7 @@ view layout layoutPage =
                     [ SidebarNav.view activeRoute
                     , Html.div [ Attributes.class "relative flex flex-1" ]
                         [ viewStandardWithSidebarNav header layoutPage
-                        , Html.div [ Attributes.class "absolute inset-0 bg-blue-200" ]
+                        , Html.div [ Attributes.class "absolute inset-0 bg-blue-50" ]
                             [ viewServices
                             ]
                         ]

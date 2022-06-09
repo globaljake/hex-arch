@@ -1,10 +1,11 @@
-module Api.HexArch.Data.Thing exposing (Thing, decoder, fetchAll, firstName, id, isActive, lastName)
+module Api.HexArch.Data.Thing exposing (Thing, decoder, encode, fetchAll, firstName, id, isActive, lastName, mock)
 
 import Api.HexArch.Api as Api
 import Api.HexArch.Endpoint as Endpoint
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Decode
+import Json.Encode as Encode
 import Task exposing (Task)
 
 
@@ -22,6 +23,16 @@ type alias Internal =
     , lastName : String
     , isActive : Bool
     }
+
+
+mock : Thing
+mock =
+    Thing
+        { id = "1234"
+        , firstName = "Jake"
+        , lastName = "Quattrocci"
+        , isActive = True
+        }
 
 
 
@@ -52,13 +63,23 @@ isActive (Thing thing) =
 -- ADAPTERS
 
 
+encode : Thing -> Encode.Value
+encode thing =
+    Encode.object
+        [ ( "id", Encode.string (id thing) )
+        , ( "firstName", Encode.string (firstName thing) )
+        , ( "lastName", Encode.string (lastName thing) )
+        , ( "isActive", Encode.bool (isActive thing) )
+        ]
+
+
 decoder : Decode.Decoder Thing
 decoder =
     Decode.succeed Internal
         |> Decode.required "id" Decode.string
-        |> Decode.optional "firstName" Decode.string "BAD FIRST NAME"
-        |> Decode.optional "lastName" Decode.string "BAD LAST NAME"
-        |> Decode.required "isInactive" Decode.bool
+        |> Decode.required "firstName" Decode.string
+        |> Decode.required "lastName" Decode.string
+        |> Decode.required "isActive" Decode.bool
         |> Decode.map Thing
 
 

@@ -37,7 +37,7 @@ init url session =
 
                 Just Route.Logout ->
                     ( NotFound
-                    , Session.request Session.ClearSession
+                    , Session.clear
                     )
 
                 Just Route.Dashboard ->

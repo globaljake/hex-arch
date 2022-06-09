@@ -69,7 +69,7 @@ update msg (Model model) =
 
 view : Model -> Html Msg
 view (Model model) =
-    Html.div [ Attributes.class "absolute inset-0 bg-blue-200" ]
+    Html.div [ Attributes.class "absolute inset-0 bg-blue-100" ]
         [ Toast.view model.toast
             |> Html.map ToastMsg
         ]

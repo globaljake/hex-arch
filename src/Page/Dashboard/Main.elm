@@ -1,8 +1,13 @@
 module Page.Dashboard.Main exposing (Model, Msg, init, subscriptions, update, view)
 
+import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import Flags exposing (Flags)
 import Html exposing (Html)
+import Html.Attributes as Attributes
+import Json.Decode as Decode
 import Modal
+import Modal.EditProfile as EditProfile
+import Port
 import Process
 import Session exposing (Session)
 import Task
@@ -21,14 +26,15 @@ type Model
 
 type alias Internal =
     { feed : List ()
+    , thing : Maybe Thing
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model { feed = [] }
+    ( Model { feed = [], thing = Nothing }
     , Cmd.batch
-        [ Process.sleep 1000
+        [ Process.sleep 3000
             |> Task.attempt GotStuff
         , Process.sleep 4000
             |> Task.attempt GotOtherStuff
@@ -43,7 +49,7 @@ init session =
 type Msg
     = GotStuff (Result () ())
     | GotOtherStuff (Result () ())
-    | NoOp
+    | GotEditProfileEvent (Result Decode.Error (Port.Event Thing))
 
 
 
@@ -57,25 +63,37 @@ update msg (Model model) =
             GotStuff _ ->
                 ( model
                 , Cmd.batch
-                    [ Toast.add Toast.Hey
-                    , Toast.add Toast.ImAToast
-                    , Toast.add Toast.Hey
-                    , Toast.add Toast.LookAtMe
-                    , Modal.open (Modal.BuyCoinsConfig ())
+                    [ Modal.open Modal.EditProfileModal
                     ]
                 )
 
             GotOtherStuff _ ->
                 ( model
                 , Cmd.batch
-                    [ Toast.remove Toast.Hey
+                    [ Toast.add Toast.Hey
+                    , Toast.add Toast.ImAToast
+                    , Toast.add Toast.Hey
+                    , Toast.add Toast.LookAtMe
+                    , Toast.remove Toast.Hey
                     , Toast.remove Toast.ImAToast
-                    , Modal.close
                     ]
                 )
 
-            NoOp ->
+            GotEditProfileEvent (Ok event) ->
+                updateEditProfieEvent event model
+
+            GotEditProfileEvent _ ->
                 ( model, Cmd.none )
+
+
+updateEditProfieEvent : Port.Event Thing -> Internal -> ( Internal, Cmd msg )
+updateEditProfieEvent event model =
+    case event of
+        Port.Added thing ->
+            ( { model | thing = Just thing }, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 
@@ -89,8 +107,7 @@ view session (Model model) =
 
 viewContent : Html Msg
 viewContent =
-    Html.div []
-        []
+    Html.div [ Attributes.class "bg-black" ] [ Html.text "Im the Dashboard!" ]
 
 
 
@@ -99,4 +116,4 @@ viewContent =
 
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
-    Sub.none
+    Sub.batch [ EditProfile.subscribe GotEditProfileEvent ]

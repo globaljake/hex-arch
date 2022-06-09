@@ -1,21 +1,20 @@
 port module Session exposing
-    ( Event(..)
-    , ModuleRequest(..)
-    , Msg
+    ( Msg
     , Session
+    , clear
     , make
     , navKey
-    , request
     , subscribe
     , subscriptions
     , update
+    , updateViewer
     , viewer
     )
 
 import Browser.Navigation as Navigation
 import Json.Decode as Decode
 import Json.Encode as Encode
-import ModuleRequest
+import Port
 import String exposing (cons)
 import Ui.LayoutPage exposing (constructor)
 import Viewer exposing (Viewer)
@@ -49,7 +48,7 @@ make navKey_ maybeViewer =
 
 
 type Msg
-    = GotModuleRequest (Result Decode.Error ModuleRequest)
+    = GotInstruction (Result Decode.Error (Port.Instruction Viewer))
 
 
 
@@ -59,17 +58,27 @@ type Msg
 update : Msg -> Session -> ( Session, Cmd Msg )
 update msg session =
     case msg of
-        GotModuleRequest (Ok (StoreViewer v)) ->
-            ( LoggedIn (navKey session) v
-            , publish (UpdatedViewer v)
+        GotInstruction (Ok instruction) ->
+            updateInstruction instruction session
+
+        GotInstruction (Err err) ->
+            ( session, Cmd.none )
+
+
+updateInstruction : Port.Instruction Viewer -> Session -> ( Session, Cmd Msg )
+updateInstruction instruction session =
+    case instruction of
+        Port.Add viewer_ ->
+            ( LoggedIn (navKey session) viewer_
+            , publish (Port.Added viewer_)
             )
 
-        GotModuleRequest (Ok ClearSession) ->
+        Port.Clear ->
             ( Guest (navKey session)
-            , publish ClearedSession
+            , publish Port.Cleared
             )
 
-        GotModuleRequest (Err _) ->
+        _ ->
             ( session, Cmd.none )
 
 
@@ -98,95 +107,50 @@ viewer session =
 
 
 
--- MODULE REQUEST
+-- INSTRUCTIONS
 
 
-type ModuleRequest
-    = StoreViewer Viewer
-    | ClearSession
+port sessionSendInstruction : Encode.Value -> Cmd msg
 
 
-port sessionSendRequest : Encode.Value -> Cmd msg
+updateViewer : Viewer -> Cmd msg
+updateViewer viewer_ =
+    sessionSendInstruction (Port.encodeInstruction Viewer.encode (Port.Add viewer_))
 
 
-request : ModuleRequest -> Cmd msg
-request moduleRequest =
-    sessionSendRequest <|
-        case moduleRequest of
-            StoreViewer viewer_ ->
-                ModuleRequest.encode "StoreViewer" (Viewer.encode viewer_)
-
-            ClearSession ->
-                ModuleRequest.encode "ClearSession" Encode.null
+clear : Cmd msg
+clear =
+    sessionSendInstruction (Port.encodeInstruction (\_ -> Encode.null) Port.Clear)
 
 
-port sessionReceiveRequest : (Encode.Value -> msg) -> Sub msg
+port sessionReceiveInstruction : (Encode.Value -> msg) -> Sub msg
 
 
-moduleRequests : (Result Decode.Error ModuleRequest -> Msg) -> Sub Msg
-moduleRequests tagger =
-    let
-        decoder_ =
-            ModuleRequest.decoder
-                (\( constructor, payloadField ) ->
-                    case constructor of
-                        "StoreViewer" ->
-                            Decode.map StoreViewer (Decode.field payloadField Viewer.decoder)
-
-                        "ClearSession" ->
-                            Decode.succeed ClearSession
-
-                        _ ->
-                            Decode.fail (ModuleRequest.failMessage constructor)
-                )
-    in
-    sessionReceiveRequest (tagger << Decode.decodeValue decoder_)
+instructions : (Result Decode.Error (Port.Instruction Viewer) -> Msg) -> Sub Msg
+instructions tagger =
+    sessionReceiveInstruction
+        (tagger << Decode.decodeValue (Port.decoderInstruction Viewer.decoder))
 
 
 
--- PUB / SUB
+-- EVENTS
 
 
-type Event
-    = UpdatedViewer Viewer
-    | ClearedSession
+port sessionEventPublish : Encode.Value -> Cmd msg
 
 
-port sessionPublish : Encode.Value -> Cmd msg
-
-
-publish : Event -> Cmd Msg
+publish : Port.Event Viewer -> Cmd Msg
 publish event =
-    sessionPublish <|
-        case event of
-            UpdatedViewer viewer_ ->
-                ModuleRequest.encode "UpdatedViewer" (Viewer.encode viewer_)
-
-            ClearedSession ->
-                ModuleRequest.encode "ClearedSession" Encode.null
+    sessionEventPublish (Port.encodeEvent Viewer.encode event)
 
 
-port sessionSubscribe : (Encode.Value -> msg) -> Sub msg
+port sessionEventSubscribe : (Encode.Value -> msg) -> Sub msg
 
 
-subscribe : (Result Decode.Error Event -> msg) -> Sub msg
+subscribe : (Result Decode.Error (Port.Event Viewer) -> msg) -> Sub msg
 subscribe tagger =
-    let
-        decoder_ =
-            ModuleRequest.decoder
-                (\( constructor, payloadField ) ->
-                    case constructor of
-                        "UpdatedViewer" ->
-                            Decode.map UpdatedViewer (Decode.field payloadField Viewer.decoder)
-
-                        "ClearedSession" ->
-                            Decode.succeed ClearedSession
-
-                        _ ->
-                            Decode.fail (ModuleRequest.failMessage constructor)
-                )
-    in
-    sessionSubscribe (tagger << Decode.decodeValue decoder_)
+    sessionEventSubscribe
+        (tagger << Decode.decodeValue (Port.decoderEvent Viewer.decoder))
 
 
 
@@ -195,4 +159,4 @@ subscribe tagger =
 
 subscriptions : Session -> Sub Msg
 subscriptions session =
-    moduleRequests GotModuleRequest
+    instructions GotInstruction

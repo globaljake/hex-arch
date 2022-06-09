@@ -1,12 +1,11 @@
 module Page.Login exposing (Model, Msg, init, subscriptions, update, view)
 
-import Browser.Navigation as Navigation
-import Flags exposing (Flags)
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Http
-import Json.Decode as Decode exposing (Decoder)
+import Json.Decode as Decode
+import Port
 import RemoteData exposing (RemoteData)
 import Route
 import Session exposing (Session)
@@ -62,7 +61,7 @@ type Msg
     | ChangedPassword String
     | SubmitedForm
     | GotViewer (Result Http.Error Viewer)
-    | GotSessionEvent (Result Decode.Error Session.Event)
+    | GotSessionEvent (Result Decode.Error (Port.Event Viewer))
     | NoOp
 
 
@@ -87,7 +86,7 @@ update session msg (Model model) =
                 )
 
             GotViewer (Ok viewer) ->
-                ( model, Session.request (Session.StoreViewer viewer) )
+                ( model, Session.updateViewer viewer )
 
             GotViewer (Err _) ->
                 ( model, Cmd.none )
