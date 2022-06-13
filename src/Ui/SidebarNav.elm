@@ -32,7 +32,7 @@ view active =
 viewLogo : Html msg
 viewLogo =
     Html.div [ Attributes.class "flex justify-center items-center py-4 border-b border-gray-200 pointer-events-none" ]
-        [ Html.img [ Attributes.class "w-40", Attributes.src "hex-arch-logo.svg" ] []
+        [ Html.img [ Attributes.class "w-40", Attributes.src "images/hex-arch-logo.png" ] []
         ]
 
 

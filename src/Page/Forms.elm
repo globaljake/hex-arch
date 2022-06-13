@@ -1,4 +1,4 @@
-module Page.Forms.Main exposing (Model, Msg, init, subscriptions, update, view)
+module Page.Forms exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import Html exposing (Html)
@@ -10,7 +10,7 @@ import Route
 import Session exposing (Session)
 import Task
 import Toast
-import Ui.LayoutPage as LayoutPage exposing (LayoutPage)
+import Ui.PageView as PageView exposing (PageView)
 import Viewer exposing (Viewer)
 
 
@@ -86,9 +86,9 @@ update session msg (Model model) =
 -- OUTPUT
 
 
-view : Session -> Model -> LayoutPage Msg
+view : Session -> Model -> PageView Msg
 view session (Model model) =
-    LayoutPage.constructor (viewContent session model)
+    PageView.make (viewContent session model)
 
 
 viewContent : Session -> Internal -> Html Msg

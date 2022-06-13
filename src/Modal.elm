@@ -1,5 +1,6 @@
-port module Modal exposing (Modal, Msg, Variant(..), close, init, open, subscriptions, update, view)
+module Modal exposing (Modal, Msg, Variant(..), close, init, open, subscriptions, update, view)
 
+import Adapter
 import Api.HexArch.Data.Thing exposing (Thing)
 import Html exposing (Html)
 import Html.Attributes as Attributes
@@ -8,7 +9,6 @@ import Json.Decode.Pipeline as Decode
 import Json.Encode as Encode
 import Modal.Auth as Auth
 import Modal.EditProfile as EditProfile
-import Port
 import Session exposing (Session)
 
 
@@ -34,16 +34,27 @@ type Variant
 init : Maybe Variant -> ( Modal, Cmd Msg )
 init maybeVariant =
     case maybeVariant of
-        Just (AuthModal subVariant) ->
-            Auth.init subVariant
-                |> Tuple.mapBoth Auth (Cmd.map AuthMsg)
-
-        Just EditProfileModal ->
-            EditProfile.init
-                |> Tuple.mapBoth EditProfile (Cmd.map EditProfileMsg)
+        Just variant ->
+            initVariant variant Hidden
 
         Nothing ->
             ( Hidden, Cmd.none )
+
+
+initVariant : Variant -> Modal -> ( Modal, Cmd Msg )
+initVariant variant modal =
+    if modal == Hidden then
+        case variant of
+            AuthModal subVariant ->
+                Auth.init subVariant
+                    |> Tuple.mapBoth Auth (Cmd.map AuthMsg)
+
+            EditProfileModal ->
+                EditProfile.init
+                    |> Tuple.mapBoth EditProfile (Cmd.map EditProfileMsg)
+
+    else
+        ( modal, Cmd.none )
 
 
 
@@ -51,7 +62,7 @@ init maybeVariant =
 
 
 type Msg
-    = GotInstruction (Result Decode.Error (Port.Instruction Variant))
+    = GotExternalInput (Result Decode.Error ExternalInput)
     | AuthMsg Auth.Msg
     | EditProfileMsg EditProfile.Msg
 
@@ -63,32 +74,29 @@ type Msg
 update : Session -> Msg -> Modal -> ( Modal, Cmd Msg )
 update session msg model =
     case ( msg, model ) of
-        ( GotInstruction (Ok instruction), _ ) ->
-            updateInstruction instruction model
+        ( GotExternalInput (Ok externalInput), _ ) ->
+            updateExternalInput externalInput model
 
         ( AuthMsg subMsg, Auth subModel ) ->
             Auth.update subMsg subModel
                 |> Tuple.mapBoth Auth (Cmd.map AuthMsg)
 
         ( EditProfileMsg subMsg, EditProfile subModel ) ->
-            EditProfile.update close subMsg subModel
+            EditProfile.update subMsg subModel
                 |> Tuple.mapBoth EditProfile (Cmd.map EditProfileMsg)
 
         _ ->
             ( model, Cmd.none )
 
 
-updateInstruction : Port.Instruction Variant -> Modal -> ( Modal, Cmd Msg )
-updateInstruction instruction model =
-    case ( instruction, model ) of
-        ( Port.Add variant, Hidden ) ->
-            init (Just variant)
+updateExternalInput : ExternalInput -> Modal -> ( Modal, Cmd Msg )
+updateExternalInput externalInput modal =
+    case externalInput of
+        OpenModal variant ->
+            initVariant variant modal
 
-        ( Port.Clear, _ ) ->
+        CloseModal ->
             ( Hidden, Cmd.none )
-
-        _ ->
-            ( model, Cmd.none )
 
 
 
@@ -118,29 +126,58 @@ viewContent content =
 
 
 
--- INSTRUCTIONS
+-- EXTERNAL INPUT
 
 
-port modalSendInstruction : Encode.Value -> Cmd msg
+type ExternalInput
+    = OpenModal Variant
+    | CloseModal
 
 
 open : Variant -> Cmd msg
 open variant =
-    modalSendInstruction (Port.encodeInstruction encodeVariant (Port.Add variant))
+    Adapter.primaryModalAdapterSendMessage (encodeExternalInput (OpenModal variant))
 
 
 close : Cmd msg
 close =
-    modalSendInstruction (Port.encodeInstruction (\_ -> Encode.null) Port.Clear)
+    Adapter.primaryModalAdapterSendMessage (encodeExternalInput CloseModal)
 
 
-port modalReceiveInstruction : (Encode.Value -> msg) -> Sub msg
+subscribeExternalInput : (Result Decode.Error ExternalInput -> Msg) -> Sub Msg
+subscribeExternalInput tagger =
+    Adapter.primaryModalAdapterMessageReceiver
+        (tagger << Decode.decodeValue decoderExternalInput)
 
 
-instructions : (Result Decode.Error (Port.Instruction Variant) -> Msg) -> Sub Msg
-instructions tagger =
-    modalReceiveInstruction
-        (tagger << Decode.decodeValue (Port.decoderInstruction decoderVariant))
+encodeExternalInput : ExternalInput -> Encode.Value
+encodeExternalInput input =
+    case input of
+        OpenModal variant ->
+            Encode.object
+                [ ( "constructor", Encode.string "OpenModal" )
+                , ( "payload", encodeVariant variant )
+                ]
+
+        CloseModal ->
+            Encode.object [ ( "constructor", Encode.string "CloseModal" ) ]
+
+
+decoderExternalInput : Decode.Decoder ExternalInput
+decoderExternalInput =
+    Decode.field "constructor" Decode.string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "OpenModal" ->
+                        Decode.map OpenModal (Decode.field "payload" decoderVariant)
+
+                    "CloseModal" ->
+                        Decode.succeed CloseModal
+
+                    _ ->
+                        Decode.fail ("Type constructor could not be found: " ++ str)
+            )
 
 
 encodeVariant : Variant -> Encode.Value
@@ -181,5 +218,5 @@ decoderVariant =
 subscriptions : Sub Msg
 subscriptions =
     Sub.batch
-        [ instructions GotInstruction
+        [ subscribeExternalInput GotExternalInput
         ]

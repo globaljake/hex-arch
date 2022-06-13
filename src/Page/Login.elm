@@ -10,7 +10,7 @@ import RemoteData exposing (RemoteData)
 import Route
 import Session exposing (Session)
 import Task
-import Ui.LayoutPage as LayoutPage exposing (LayoutPage)
+import Ui.PageView as PageView exposing (PageView)
 import Viewer exposing (Viewer)
 
 
@@ -61,7 +61,7 @@ type Msg
     | ChangedPassword String
     | SubmitedForm
     | GotViewer (Result Http.Error Viewer)
-    | GotSessionEvent (Result Decode.Error (Port.Event Viewer))
+    | GotSessionEvent (Result Decode.Error Session.Event)
     | NoOp
 
 
@@ -91,7 +91,7 @@ update session msg (Model model) =
             GotViewer (Err _) ->
                 ( model, Cmd.none )
 
-            GotSessionEvent (Ok event) ->
+            GotSessionEvent (Ok _) ->
                 ( model, Route.replaceUrl (Session.navKey session) Route.Dashboard )
 
             GotSessionEvent (Err _) ->
@@ -110,9 +110,9 @@ updateForm f model =
 -- OUTPUT
 
 
-view : Session -> Model -> LayoutPage Msg
+view : Session -> Model -> PageView Msg
 view session (Model model) =
-    LayoutPage.constructor (viewContent model)
+    PageView.make (viewContent model)
 
 
 viewContent : Internal -> Html Msg
@@ -121,7 +121,7 @@ viewContent model =
         [ Html.div [ Attributes.class "flex flex-col bg-white max-w-lg w-full p-4 shadow rounded" ]
             [ Html.div [ Attributes.class "text-center mb-2" ]
                 [ Html.div [ Attributes.class "flex justify-center items-center py-4 pointer-events-none" ]
-                    [ Html.img [ Attributes.class "w-40", Attributes.src "hex-arch-logo.svg" ] []
+                    [ Html.img [ Attributes.class "w-40", Attributes.src "images/hex-arch-logo.png" ] []
                     ]
                 , Html.span [ Attributes.class "font-bold text-xl mb-4 text-gray-800" ] [ Html.text "Log In" ]
                 ]

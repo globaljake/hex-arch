@@ -7,7 +7,6 @@ import Html
 import Json.Encode as Encode
 import Modal exposing (Modal)
 import Page exposing (Page)
-import Services
 import Session exposing (Session)
 import Url exposing (Url)
 
@@ -98,6 +97,8 @@ update msg (Model session page modal) =
 
 view : Model -> Browser.Document Msg
 view (Model session page modal) =
+    -- TODO: rethink through layout / page / modal / notifications and how to view them
+    -- create multiple layouts and display notifications and modals depending on the layout
     let
         ( title, content ) =
             Page.layout PageMsg

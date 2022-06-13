@@ -4,16 +4,16 @@ function relay(app, fromElmCmd, toElmSub) {
 }
 
 export default {
-  instruction(app, moduleName) {
+  primary(app, moduleName) {
     if (!moduleName) return;
-    const fromElmCmd = `${moduleName}SendInstruction`;
-    const toElmSub = `${moduleName}ReceiveInstruction`;
+    const fromElmCmd = `primary${moduleName}AdapterSendMessage`;
+    const toElmSub = `primary${moduleName}AdapterMessageReceiver`;
     relay(app, fromElmCmd, toElmSub);
   },
-  event(app, moduleName) {
+  secondary(app, moduleName) {
     if (!moduleName) return;
-    const fromElmCmd = `${moduleName}EventPublish`;
-    const toElmSub = `${moduleName}EventSubscribe`;
+    const fromElmCmd = `secondary${moduleName}AdapterSendMessage`;
+    const toElmSub = `secondary${moduleName}AdapterMessageReceiver`;
     relay(app, fromElmCmd, toElmSub);
   },
 };

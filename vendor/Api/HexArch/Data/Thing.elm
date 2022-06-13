@@ -30,7 +30,7 @@ mock =
     Thing
         { id = "1234"
         , firstName = "Jake"
-        , lastName = "Quattrocci"
+        , lastName = "Quattrocchi"
         , isActive = True
         }
 

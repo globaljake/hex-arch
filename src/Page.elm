@@ -1,13 +1,13 @@
 module Page exposing (Msg, Page, init, layout, subscriptions, update)
 
 import Html exposing (Html)
-import Page.Dashboard.Main as Dashboard
-import Page.Forms.Main as Forms
+import Page.Dashboard as Dashboard
+import Page.Forms as Forms
 import Page.Login as Login
 import Page.NotFound as NotFound
 import Route as Route exposing (Route)
 import Session as Session exposing (Session)
-import Ui.LayoutPage as LayoutPage exposing (LayoutPage)
+import Ui.PageView as PageView exposing (PageView)
 import Url exposing (Url)
 import Viewer
 
@@ -98,22 +98,22 @@ layout tagger { session, page, viewServices } =
         NotFound ->
             ( "Not Found"
             , NotFound.view
-                |> LayoutPage.view LayoutPage.Blank
+                |> PageView.view PageView.Blank
             )
 
         Login subModel ->
             ( "Login"
             , Login.view session subModel
-                |> LayoutPage.map (tagger << LoginMsg)
-                |> LayoutPage.view LayoutPage.Blank
+                |> PageView.map (tagger << LoginMsg)
+                |> PageView.view PageView.Blank
             )
 
         Dashboard subModel ->
             ( "Dashboard"
             , Dashboard.view session subModel
-                |> LayoutPage.map (tagger << DashboardMsg)
-                |> LayoutPage.view
-                    (LayoutPage.StandardWithSidebarNav
+                |> PageView.map (tagger << DashboardMsg)
+                |> PageView.view
+                    (PageView.StandardWithSidebarNav
                         { header = "Dashboard"
                         , activeRoute = Just Route.Dashboard
                         , viewServices = viewServices
@@ -124,9 +124,9 @@ layout tagger { session, page, viewServices } =
         Forms subModel ->
             ( "Forms"
             , Forms.view session subModel
-                |> LayoutPage.map (tagger << FormsMsg)
-                |> LayoutPage.view
-                    (LayoutPage.StandardWithSidebarNav
+                |> PageView.map (tagger << FormsMsg)
+                |> PageView.view
+                    (PageView.StandardWithSidebarNav
                         { header = "Forms"
                         , activeRoute = Just Route.Forms
                         , viewServices = viewServices

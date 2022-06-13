@@ -1,9 +1,9 @@
 module Page.NotFound exposing (view)
 
 import Html exposing (Html)
-import Ui.LayoutPage as LayoutPage exposing (LayoutPage)
+import Ui.PageView as PageView exposing (PageView)
 
 
-view : LayoutPage msg
+view : PageView msg
 view =
-    LayoutPage.constructor (Html.div [] [ Html.text "Not Found Yo" ])
+    PageView.make (Html.div [] [ Html.text "Not Found Yo" ])

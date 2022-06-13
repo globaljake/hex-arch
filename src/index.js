@@ -1,49 +1,24 @@
 import "./index.css";
 
 import { Elm } from "./Main.elm";
-import Port from "./Port";
-import Session from "./Session";
+import Adapter from "./Adapter";
+import Viewer from "./Viewer";
 
-const flags = { viewer: Session.getViewer() };
-
-// var app = Elm.Main.init({ flags: flags });
-
-// app.ports.storeCache.subscribe(function (val) {
-//   if (val === null) {
-//     localStorage.removeItem(storageKey);
-//   } else {
-//     localStorage.setItem(storageKey, JSON.stringify(val));
-//   }
-
-//   // Report that the new session was stored successfully.
-//   setTimeout(function () {
-//     app.ports.onStoreChange.send(val);
-//   }, 0);
-// });
-
-// // Whenever localStorage changes in another tab, report it if necessary.
-// window.addEventListener(
-//   "storage",
-//   function (event) {
-//     if (event.storageArea === localStorage && event.key === storageKey) {
-//       app.ports.onStoreChange.send(event.newValue);
-//     }
-//   },
-//   false
-// );
+const flags = { viewer: Viewer.getLocalStorage() };
 
 const app = Elm.Main.init({
   node: document.querySelector("main"),
   flags: flags,
 });
 
-//  Instructions
-Port.instruction(app, "session");
-Port.instruction(app, "modal");
-Port.instruction(app, "toast");
+// Primary Adapters
+Adapter.primary(app, "Session");
+Adapter.primary(app, "Modal");
+Adapter.primary(app, "Toast");
 
-// Events
-Port.event(app, "session");
-Port.event(app, "editProfile");
+// Secondary Adapters
+Adapter.secondary(app, "Session");
+Adapter.secondary(app, "ThingForm");
 
-Session.start(app);
+// Modules
+Viewer.start(app);

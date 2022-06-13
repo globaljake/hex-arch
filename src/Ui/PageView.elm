@@ -1,4 +1,4 @@
-module Ui.LayoutPage exposing (Layout(..), LayoutPage, constructor, map, view)
+module Ui.PageView exposing (Layout(..), PageView, make, map, view)
 
 import Html exposing (Html)
 import Html.Attributes as Attributes
@@ -10,30 +10,30 @@ import Ui.SidebarNav as SidebarNav
 -- TYPES
 
 
+type PageView msg
+    = PageView (Html msg)
+
+
 type Layout msg
     = StandardWithSidebarNav { header : String, activeRoute : Maybe Route, viewServices : Html msg }
     | Blank
-
-
-type LayoutPage msg
-    = LayoutPage (Html msg)
 
 
 
 -- CONSTUCTOR
 
 
-constructor : Html msg -> LayoutPage msg
-constructor content_ =
-    LayoutPage content_
+make : Html msg -> PageView msg
+make content_ =
+    PageView content_
 
 
 
 -- PROPERTIES
 
 
-content : LayoutPage msg -> Html msg
-content (LayoutPage content_) =
+content : PageView msg -> Html msg
+content (PageView content_) =
     content_
 
 
@@ -41,22 +41,22 @@ content (LayoutPage content_) =
 -- OUTPUT
 
 
-view : Layout msg -> LayoutPage msg -> Html msg
-view layout layoutPage =
+view : Layout msg -> PageView msg -> Html msg
+view layout pageView =
     Html.main_
         [ Attributes.class "h-screen w-full" ]
         [ case layout of
             Blank ->
                 Html.div [ Attributes.class "flex h-full w-full bg-gray-50" ]
-                    [ content layoutPage
+                    [ content pageView
                     ]
 
             StandardWithSidebarNav { header, activeRoute, viewServices } ->
                 Html.div [ Attributes.class "flex h-full" ]
                     [ SidebarNav.view activeRoute
                     , Html.div [ Attributes.class "relative flex flex-1" ]
-                        [ viewStandardWithSidebarNav header layoutPage
-                        , Html.div [ Attributes.class "absolute inset-0 bg-blue-50" ]
+                        [ viewStandardWithSidebarNav header pageView
+                        , Html.div [ Attributes.class "absolute inset-0" ]
                             [ viewServices
                             ]
                         ]
@@ -64,11 +64,11 @@ view layout layoutPage =
         ]
 
 
-viewStandardWithSidebarNav : String -> LayoutPage msg -> Html msg
-viewStandardWithSidebarNav header layoutPage =
+viewStandardWithSidebarNav : String -> PageView msg -> Html msg
+viewStandardWithSidebarNav header pageView =
     Html.div [ Attributes.class "flex flex-col bg-gray-50 p-5 w-full" ]
         [ Html.span [ Attributes.class "flex font-bold text-4xl text-gray-800 mb-5" ] [ Html.text header ]
-        , content layoutPage
+        , content pageView
         ]
 
 
@@ -76,6 +76,6 @@ viewStandardWithSidebarNav header layoutPage =
 -- FUNCTOR
 
 
-map : (a -> b) -> LayoutPage a -> LayoutPage b
-map f layoutPage =
-    LayoutPage (Html.map f (content layoutPage))
+map : (a -> b) -> PageView a -> PageView b
+map f pageView =
+    PageView (Html.map f (content pageView))

@@ -1,12 +1,8 @@
-port module Modal.EditProfile exposing (Model, Msg, init, subscribe, update, view)
+module Modal.EditProfile exposing (Model, Msg, init, update, view)
 
-import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import Html exposing (Html)
 import Html.Attributes as Attributes
-import Html.Events as Events
-import Json.Decode as Decode
-import Json.Encode as Encode
-import Port
+import Ui.ThingForm as ThingForm
 
 
 
@@ -18,12 +14,18 @@ type Model
 
 
 type alias Internal =
-    {}
+    { thingForm : ThingForm.Model }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model {}, Cmd.none )
+    let
+        ( thingForm, thingFormCmd ) =
+            ThingForm.init
+    in
+    ( Model { thingForm = thingForm }
+    , Cmd.map ThingFormMsg thingFormCmd
+    )
 
 
 
@@ -31,24 +33,24 @@ init =
 
 
 type Msg
-    = ClickedButtonToGrabThing
+    = ThingFormMsg ThingForm.Msg
 
 
 
 -- TRANSITION
 
 
-update : Cmd Msg -> Msg -> Model -> ( Model, Cmd Msg )
-update close msg (Model model) =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg (Model model) =
     Tuple.mapFirst Model <|
         case msg of
-            ClickedButtonToGrabThing ->
-                ( model
-                , Cmd.batch
-                    [ publish (Port.Added Thing.mock)
-                    , close
-                    ]
-                )
+            ThingFormMsg subMsg ->
+                ThingForm.update subMsg model.thingForm
+                    |> (\( subModel, subCmd ) ->
+                            ( { model | thingForm = subModel }
+                            , Cmd.map ThingFormMsg subCmd
+                            )
+                       )
 
 
 
@@ -56,43 +58,16 @@ update close msg (Model model) =
 
 
 view : Model -> Html Msg
-view model =
+view (Model model) =
     Html.div [ Attributes.class "flex justify-center mt-20" ]
         [ Html.div [ Attributes.class "flex-col border rounded bg-white p-5" ]
             [ Html.span [ Attributes.class "flex mb-5 justify-center w-96" ]
                 [ Html.text "this is a modal"
                 ]
-            , Html.div [ Attributes.class "flex justify-center" ]
-                [ Html.button
-                    [ Attributes.class "bg-blue-500 rounded-full px-4 py-2 text-white"
-                    , Events.onClick ClickedButtonToGrabThing
-                    ]
-                    [ Html.text "Publish Thing"
-                    ]
-                ]
+            , ThingForm.view model.thingForm
+                |> Html.map ThingFormMsg
             ]
         ]
-
-
-
--- EVENTS
-
-
-port editProfileEventPublish : Encode.Value -> Cmd msg
-
-
-publish : Port.Event Thing -> Cmd Msg
-publish event =
-    editProfileEventPublish (Port.encodeEvent Thing.encode event)
-
-
-port editProfileEventSubscribe : (Encode.Value -> msg) -> Sub msg
-
-
-subscribe : (Result Decode.Error (Port.Event Thing) -> msg) -> Sub msg
-subscribe tagger =
-    editProfileEventSubscribe
-        (tagger << Decode.decodeValue (Port.decoderEvent Thing.decoder))
 
 
 

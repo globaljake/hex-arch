@@ -1,4 +1,13 @@
-module Viewer exposing (Viewer, authenticate, decoder, encode, hexArchAuthToken)
+port module Viewer exposing
+    ( Viewer
+    , authenticate
+    , clear
+    , decoder
+    , encode
+    , hexArchAuthToken
+    , onChangeFromOtherTab
+    , store
+    )
 
 import Api.HexArch.Api as HexArchApi
 import Http
@@ -10,7 +19,7 @@ import Task exposing (Task)
 
 
 
--- TYPES
+-- STATE
 
 
 type Viewer
@@ -23,7 +32,7 @@ type alias Internal =
 
 
 
--- PROPERTIES
+-- OUTPUT
 
 
 hexArchAuthToken : Viewer -> HexArchApi.AuthToken
@@ -32,7 +41,32 @@ hexArchAuthToken (Viewer viewer) =
 
 
 
--- ADAPTERS
+-- JS PORTS
+
+
+port viewerOutgoingMessage : Maybe Encode.Value -> Cmd msg
+
+
+port viewerIncomingMessage : (Encode.Value -> msg) -> Sub msg
+
+
+store : Viewer -> Cmd msg
+store viewer =
+    viewerOutgoingMessage (Just (encode viewer))
+
+
+clear : Cmd msg
+clear =
+    viewerOutgoingMessage Nothing
+
+
+onChangeFromOtherTab : (Result Decode.Error Viewer -> msg) -> Sub msg
+onChangeFromOtherTab tagger =
+    viewerIncomingMessage (tagger << Decode.decodeValue decoder)
+
+
+
+-- ENCODE / DECODE
 
 
 encode : Viewer -> Encode.Value

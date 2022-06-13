@@ -1,5 +1,6 @@
-port module Session exposing
-    ( Msg
+module Session exposing
+    ( Event(..)
+    , Msg
     , Session
     , clear
     , make
@@ -11,12 +12,11 @@ port module Session exposing
     , viewer
     )
 
+import Adapter
 import Browser.Navigation as Navigation
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Port
-import String exposing (cons)
-import Ui.LayoutPage exposing (constructor)
+import Route
 import Viewer exposing (Viewer)
 
 
@@ -48,7 +48,7 @@ make navKey_ maybeViewer =
 
 
 type Msg
-    = GotInstruction (Result Decode.Error (Port.Instruction Viewer))
+    = GotExternalInput (Result Decode.Error ExternalInput)
 
 
 
@@ -58,27 +58,24 @@ type Msg
 update : Msg -> Session -> ( Session, Cmd Msg )
 update msg session =
     case msg of
-        GotInstruction (Ok instruction) ->
-            updateInstruction instruction session
-
-        GotInstruction (Err err) ->
-            ( session, Cmd.none )
-
-
-updateInstruction : Port.Instruction Viewer -> Session -> ( Session, Cmd Msg )
-updateInstruction instruction session =
-    case instruction of
-        Port.Add viewer_ ->
+        GotExternalInput (Ok (UpdateViewer viewer_)) ->
             ( LoggedIn (navKey session) viewer_
-            , publish (Port.Added viewer_)
+            , Cmd.batch
+                [ publish Authenticated
+                , Viewer.store viewer_
+                ]
             )
 
-        Port.Clear ->
+        GotExternalInput (Ok Clear) ->
             ( Guest (navKey session)
-            , publish Port.Cleared
+            , Cmd.batch
+                [ publish SessionCleared
+                , Viewer.clear
+                , Route.replaceUrl (navKey session) Route.Login
+                ]
             )
 
-        _ ->
+        GotExternalInput (Err err) ->
             ( session, Cmd.none )
 
 
@@ -107,50 +104,105 @@ viewer session =
 
 
 
--- INSTRUCTIONS
+-- External Input
 
 
-port sessionSendInstruction : Encode.Value -> Cmd msg
+type ExternalInput
+    = UpdateViewer Viewer
+    | Clear
 
 
 updateViewer : Viewer -> Cmd msg
 updateViewer viewer_ =
-    sessionSendInstruction (Port.encodeInstruction Viewer.encode (Port.Add viewer_))
+    Adapter.primarySessionAdapterSendMessage (encodeExternalInput (UpdateViewer viewer_))
 
 
 clear : Cmd msg
 clear =
-    sessionSendInstruction (Port.encodeInstruction (\_ -> Encode.null) Port.Clear)
+    Adapter.primarySessionAdapterSendMessage (encodeExternalInput Clear)
 
 
-port sessionReceiveInstruction : (Encode.Value -> msg) -> Sub msg
+externalInput : (Result Decode.Error ExternalInput -> Msg) -> Sub Msg
+externalInput tagger =
+    Adapter.primarySessionAdapterMessageReceiver
+        (tagger << Decode.decodeValue decoderExternalInput)
 
 
-instructions : (Result Decode.Error (Port.Instruction Viewer) -> Msg) -> Sub Msg
-instructions tagger =
-    sessionReceiveInstruction
-        (tagger << Decode.decodeValue (Port.decoderInstruction Viewer.decoder))
+encodeExternalInput : ExternalInput -> Encode.Value
+encodeExternalInput input =
+    case input of
+        UpdateViewer viewer_ ->
+            Encode.object
+                [ ( "constructor", Encode.string "UpdateViewer" )
+                , ( "payload", Viewer.encode viewer_ )
+                ]
+
+        Clear ->
+            Encode.object [ ( "constructor", Encode.string "Clear" ) ]
+
+
+decoderExternalInput : Decode.Decoder ExternalInput
+decoderExternalInput =
+    Decode.field "constructor" Decode.string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "UpdateViewer" ->
+                        Decode.map UpdateViewer (Decode.field "payload" Viewer.decoder)
+
+                    "Clear" ->
+                        Decode.succeed Clear
+
+                    _ ->
+                        Decode.fail ("Type constructor could not be found: " ++ str)
+            )
 
 
 
--- EVENTS
+--  EVENTS
 
 
-port sessionEventPublish : Encode.Value -> Cmd msg
+type Event
+    = Authenticated
+    | SessionCleared
 
 
-publish : Port.Event Viewer -> Cmd Msg
+encodeEvent : Event -> Encode.Value
+encodeEvent input =
+    case input of
+        Authenticated ->
+            Encode.object [ ( "constructor", Encode.string "Authenticated" ) ]
+
+        SessionCleared ->
+            Encode.object [ ( "constructor", Encode.string "SessionCleared" ) ]
+
+
+decoderEvent : Decode.Decoder Event
+decoderEvent =
+    Decode.field "constructor" Decode.string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "Authenticated" ->
+                        Decode.succeed Authenticated
+
+                    "SessionCleared" ->
+                        Decode.succeed SessionCleared
+
+                    _ ->
+                        Decode.fail ("Type constructor could not be found: " ++ str)
+            )
+
+
+publish : Event -> Cmd Msg
 publish event =
-    sessionEventPublish (Port.encodeEvent Viewer.encode event)
+    Adapter.secondarySessionAdapterSendMessage (encodeEvent event)
 
 
-port sessionEventSubscribe : (Encode.Value -> msg) -> Sub msg
-
-
-subscribe : (Result Decode.Error (Port.Event Viewer) -> msg) -> Sub msg
+subscribe : (Result Decode.Error Event -> msg) -> Sub msg
 subscribe tagger =
-    sessionEventSubscribe
-        (tagger << Decode.decodeValue (Port.decoderEvent Viewer.decoder))
+    Adapter.secondarySessionAdapterMessageReceiver
+        (tagger << Decode.decodeValue decoderEvent)
 
 
 
@@ -159,4 +211,7 @@ subscribe tagger =
 
 subscriptions : Session -> Sub Msg
 subscriptions session =
-    instructions GotInstruction
+    Sub.batch
+        [ externalInput GotExternalInput
+        , Viewer.onChangeFromOtherTab (GotExternalInput << Result.map UpdateViewer)
+        ]
