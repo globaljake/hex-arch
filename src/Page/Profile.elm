@@ -1,4 +1,4 @@
-module Page.Forms exposing (Model, Msg, init, subscriptions, update, view)
+module Page.Profile exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import Html exposing (Html)
@@ -6,6 +6,7 @@ import Html.Attributes as Attributes
 import Html.Events as Events
 import Http
 import Process
+import Relay exposing (Receiver)
 import Route
 import Session exposing (Session)
 import Task
@@ -138,7 +139,7 @@ viewTableCell value =
 
 
 
--- PORTS
+-- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg

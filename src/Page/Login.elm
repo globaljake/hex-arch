@@ -1,11 +1,10 @@
-module Page.Login exposing (Model, Msg, init, subscriptions, update, view)
+module Page.Login exposing (Model, Msg, init, receivers, subscriptions, update, view)
 
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Http
 import Json.Decode as Decode
-import Port
 import Relay
 import RemoteData exposing (RemoteData)
 import Route
@@ -163,8 +162,10 @@ viewContent model =
 
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
-    Sub.batch
-        [ Relay.subscribe GotRelayError
-            [ Session.externalReceiver GotRelaySessionExternalMsg
-            ]
-        ]
+    Sub.none
+
+
+receivers : List (Relay.Receiver Msg)
+receivers =
+    [ Session.externalReceiver GotRelaySessionExternalMsg
+    ]

@@ -6,6 +6,7 @@ module Session exposing
     , externalReceiver
     , make
     , navKey
+    , receivers
     , subscriptions
     , update
     , updateViewer
@@ -109,6 +110,25 @@ viewer session =
 
         Guest _ ->
             Nothing
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Session -> Sub Msg
+subscriptions session =
+    Sub.batch
+        [ Viewer.onChangeFromOtherTab
+            (\x ->
+                case x of
+                    Ok viewer_ ->
+                        GotRelayInternalMsg (UpdateViewer viewer_)
+
+                    Err err ->
+                        GotRelayError err
+            )
+        ]
 
 
 
@@ -226,23 +246,7 @@ decoderRelayExternalMsg =
             )
 
 
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Session -> Sub Msg
-subscriptions session =
-    Sub.batch
-        [ Relay.subscribe GotRelayError
-            [ internalReceiver GotRelayInternalMsg
-            ]
-        , Viewer.onChangeFromOtherTab
-            (\x ->
-                case x of
-                    Ok viewer_ ->
-                        GotRelayInternalMsg (UpdateViewer viewer_)
-
-                    Err err ->
-                        GotRelayError err
-            )
-        ]
+receivers : List (Relay.Receiver Msg)
+receivers =
+    [ internalReceiver GotRelayInternalMsg
+    ]

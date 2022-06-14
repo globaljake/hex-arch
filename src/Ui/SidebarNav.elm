@@ -45,7 +45,7 @@ viewItems active =
             , { route = Nothing, text = "Schedule", icon = "fa-calendar-alt fa-solid" }
             , { route = Nothing, text = "Invoices", icon = "fa-file-invoice-dollar fa-solid" }
             , { route = Nothing, text = "Tasks", icon = "fa-tasks fa-solid" }
-            , { route = Just Route.Forms, text = "Forms", icon = "fa-file-medical fa-solid" }
+            , { route = Just Route.Profile, text = "Profile", icon = "fa-file-medical fa-solid" }
             , { route = Nothing, text = "Reminders", icon = "fa-bell fa-solid" }
             , { route = Nothing, text = "Whiteboard", icon = "fa-chalkboard fa-solid" }
             ]

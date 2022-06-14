@@ -1,4 +1,4 @@
-port module Relay exposing (Adapter, Message, Receiver, external, internal, message, publish, receiver, subscribe)
+port module Relay exposing (Adapter, Message, Receiver, external, internal, map, message, publish, receiver, subscribe)
 
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Decode
@@ -51,6 +51,11 @@ message adapter encodeMsg msg =
 receiver : Adapter -> Decode.Decoder msg -> Receiver msg
 receiver =
     Receiver
+
+
+map : (a -> b) -> Receiver a -> Receiver b
+map f (Receiver adapter decoderMsg) =
+    Receiver adapter (Decode.map f decoderMsg)
 
 
 

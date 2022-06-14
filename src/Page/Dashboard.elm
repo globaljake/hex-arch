@@ -1,4 +1,4 @@
-module Page.Dashboard exposing (Model, Msg, init, subscriptions, update, view)
+module Page.Dashboard exposing (Model, Msg, init, receivers, subscriptions, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import Html exposing (Html)
@@ -49,7 +49,6 @@ type Msg
     | GotOtherStuff (Result () ())
     | GotThingFromThingForm (Result Decode.Error Thing)
     | GotRelayThingForm Thing
-    | GotRelayError Decode.Error
 
 
 
@@ -84,9 +83,6 @@ update msg (Model model) =
                 , Modal.close
                 )
 
-            GotRelayError err ->
-                ( model, Cmd.none )
-
 
 
 -- OUTPUT
@@ -120,7 +116,10 @@ viewContent model =
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
     Sub.batch
-        [ Relay.subscribe GotRelayError
-            [ ThingForm.receiver GotRelayThingForm
-            ]
-        ]
+        []
+
+
+receivers : List (Relay.Receiver Msg)
+receivers =
+    [ ThingForm.receiver GotRelayThingForm
+    ]

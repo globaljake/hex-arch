@@ -5,6 +5,7 @@ module Modal exposing
     , close
     , init
     , open
+    , receivers
     , subscriptions
     , update
     , view
@@ -240,8 +241,10 @@ decoderVariant =
 
 subscriptions : Modal -> Sub Msg
 subscriptions modal =
-    Sub.batch
-        [ Relay.subscribe GotRelayError
-            [ internalReceiver GotRelayInternalMsg
-            ]
-        ]
+    Sub.none
+
+
+receivers : List (Relay.Receiver Msg)
+receivers =
+    [ internalReceiver GotRelayInternalMsg
+    ]

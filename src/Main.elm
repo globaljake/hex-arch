@@ -4,9 +4,11 @@ import Browser
 import Browser.Navigation as Navigation
 import Flags exposing (Flags)
 import Html
+import Json.Decode as Decode
 import Json.Encode as Encode
 import Modal exposing (Modal)
 import Page exposing (Page)
+import Relay
 import Session exposing (Session)
 import Url exposing (Url)
 
@@ -53,6 +55,7 @@ type Msg
     | SessionMsg Session.Msg
     | PageMsg Page.Msg
     | ModalMsg Modal.Msg
+    | GotRelayError Decode.Error
 
 
 
@@ -90,6 +93,9 @@ update msg (Model session page modal) =
             Modal.update session subMsg modal
                 |> Tuple.mapBoth (\m -> Model session page m) (Cmd.map ModalMsg)
 
+        GotRelayError err ->
+            ( Model session page modal, Cmd.none )
+
 
 
 -- OUTPUT
@@ -125,6 +131,16 @@ subscriptions (Model session page modal) =
             |> Sub.map PageMsg
         , Modal.subscriptions modal
             |> Sub.map ModalMsg
+        , Relay.subscribe GotRelayError
+            (List.concat
+                [ Session.receivers
+                    |> List.map (Relay.map SessionMsg)
+                , Page.receivers
+                    |> List.map (Relay.map PageMsg)
+                , Modal.receivers
+                    |> List.map (Relay.map ModalMsg)
+                ]
+            )
         ]
 
 

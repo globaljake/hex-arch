@@ -16,7 +16,7 @@ type Route
     = Login
     | Logout
     | Dashboard
-    | Forms
+    | Profile
 
 
 parser : Parser (Route -> a) a
@@ -25,7 +25,7 @@ parser =
         [ Parser.map Dashboard Parser.top
         , Parser.map Login (Parser.s "login")
         , Parser.map Logout (Parser.s "logout")
-        , Parser.map Forms (Parser.s "forms")
+        , Parser.map Profile (Parser.s "profile")
         ]
 
 
@@ -69,5 +69,5 @@ toPieces page =
         Logout ->
             ( [ "logout" ], [] )
 
-        Forms ->
-            ( [ "forms" ], [] )
+        Profile ->
+            ( [ "profile" ], [] )

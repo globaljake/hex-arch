@@ -1,10 +1,10 @@
-module Page exposing (Msg, Page, init, layout, subscriptions, update)
+module Page exposing (Msg, Page, init, layout, receivers, subscriptions, update)
 
 import Html exposing (Html)
 import Page.Dashboard as Dashboard
-import Page.Forms as Forms
 import Page.Login as Login
 import Page.NotFound as NotFound
+import Page.Profile as Profile
 import Relay
 import Route as Route exposing (Route)
 import Session as Session exposing (Session)
@@ -21,7 +21,7 @@ type Page
     = NotFound
     | Login Login.Model
     | Dashboard Dashboard.Model
-    | Forms Forms.Model
+    | Profile Profile.Model
 
 
 init : Url -> Session -> ( Page, Cmd Msg )
@@ -45,9 +45,9 @@ init url session =
                     Dashboard.init session
                         |> Tuple.mapBoth Dashboard (Cmd.map DashboardMsg)
 
-                Just Route.Forms ->
-                    Forms.init viewer session
-                        |> Tuple.mapBoth Forms (Cmd.map FormsMsg)
+                Just Route.Profile ->
+                    Profile.init viewer session
+                        |> Tuple.mapBoth Profile (Cmd.map ProfileMsg)
 
         Nothing ->
             -- Dashboard.init session
@@ -63,7 +63,7 @@ init url session =
 type Msg
     = LoginMsg Login.Msg
     | DashboardMsg Dashboard.Msg
-    | FormsMsg Forms.Msg
+    | ProfileMsg Profile.Msg
 
 
 
@@ -81,9 +81,9 @@ update session msg page =
             Dashboard.update subMsg subModel
                 |> Tuple.mapBoth Dashboard (Cmd.map DashboardMsg)
 
-        ( FormsMsg subMsg, Forms subModel ) ->
-            Forms.update session subMsg subModel
-                |> Tuple.mapBoth Forms (Cmd.map FormsMsg)
+        ( ProfileMsg subMsg, Profile subModel ) ->
+            Profile.update session subMsg subModel
+                |> Tuple.mapBoth Profile (Cmd.map ProfileMsg)
 
         _ ->
             ( page, Cmd.none )
@@ -122,14 +122,14 @@ layout tagger { session, page, viewServices } =
                     )
             )
 
-        Forms subModel ->
-            ( "Forms"
-            , Forms.view session subModel
-                |> PageView.map (tagger << FormsMsg)
+        Profile subModel ->
+            ( "Profile"
+            , Profile.view session subModel
+                |> PageView.map (tagger << ProfileMsg)
                 |> PageView.view
                     (PageView.StandardWithSidebarNav
-                        { header = "Forms"
-                        , activeRoute = Just Route.Forms
+                        { header = "Profile"
+                        , activeRoute = Just Route.Profile
                         , viewServices = viewServices
                         }
                     )
@@ -137,7 +137,7 @@ layout tagger { session, page, viewServices } =
 
 
 
--- PORTS
+-- SUBSCRIPTIONS
 
 
 subscriptions : Page -> Sub Msg
@@ -154,6 +154,20 @@ subscriptions page =
             Dashboard.subscriptions subModel
                 |> Sub.map DashboardMsg
 
-        Forms subModel ->
-            Forms.subscriptions subModel
-                |> Sub.map FormsMsg
+        Profile subModel ->
+            Profile.subscriptions subModel
+                |> Sub.map ProfileMsg
+
+
+
+-- RELAY
+
+
+receivers : List (Relay.Receiver Msg)
+receivers =
+    List.concat
+        [ Login.receivers
+            |> List.map (Relay.map LoginMsg)
+        , Dashboard.receivers
+            |> List.map (Relay.map DashboardMsg)
+        ]
