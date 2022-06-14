@@ -119,7 +119,7 @@ view (Model session page modal) =
 
 
 
--- PORTS
+-- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg

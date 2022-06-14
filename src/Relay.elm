@@ -53,6 +53,10 @@ receiver =
     Receiver
 
 
+
+-- FUNCTOR
+
+
 map : (a -> b) -> Receiver a -> Receiver b
 map f (Receiver adapter decoderMsg) =
     Receiver adapter (Decode.map f decoderMsg)
