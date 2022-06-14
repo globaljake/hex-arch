@@ -123,7 +123,7 @@ subscriptions (Model session page modal) =
             |> Sub.map SessionMsg
         , Page.subscriptions page
             |> Sub.map PageMsg
-        , Modal.subscriptions
+        , Modal.subscriptions modal
             |> Sub.map ModalMsg
         ]
 

@@ -6,6 +6,7 @@ import Html.Events as Events
 import Http
 import Json.Decode as Decode
 import Port
+import Relay
 import RemoteData exposing (RemoteData)
 import Route
 import Session exposing (Session)
@@ -61,7 +62,8 @@ type Msg
     | ChangedPassword String
     | SubmitedForm
     | GotViewer (Result Http.Error Viewer)
-    | GotSessionEvent (Result Decode.Error Session.Event)
+    | GotRelaySessionExternalMsg Session.RelayExternalMsg
+    | GotRelayError Decode.Error
     | NoOp
 
 
@@ -91,10 +93,10 @@ update session msg (Model model) =
             GotViewer (Err _) ->
                 ( model, Cmd.none )
 
-            GotSessionEvent (Ok _) ->
+            GotRelaySessionExternalMsg relayMsg ->
                 ( model, Route.replaceUrl (Session.navKey session) Route.Dashboard )
 
-            GotSessionEvent (Err _) ->
+            GotRelayError err ->
                 ( model, Cmd.none )
 
             NoOp ->
@@ -162,4 +164,7 @@ viewContent model =
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
     Sub.batch
-        [ Session.subscribe GotSessionEvent ]
+        [ Relay.subscribe GotRelayError
+            [ Session.externalReceiver GotRelaySessionExternalMsg
+            ]
+        ]

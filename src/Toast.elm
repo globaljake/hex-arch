@@ -129,10 +129,6 @@ subscriptions toast =
         (GotInstruction << Decode.decodeValue (Port.decoderInstruction decoder))
 
 
-
--- ADAPTERS
-
-
 encode : Variant -> Encode.Value
 encode config =
     case config of

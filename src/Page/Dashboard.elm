@@ -6,6 +6,7 @@ import Html.Attributes as Attributes
 import Json.Decode as Decode
 import Modal
 import Process
+import Relay
 import Session exposing (Session)
 import Task
 import Toast
@@ -47,6 +48,8 @@ type Msg
     = GotStuff (Result () ())
     | GotOtherStuff (Result () ())
     | GotThingFromThingForm (Result Decode.Error Thing)
+    | GotRelayThingForm Thing
+    | GotRelayError Decode.Error
 
 
 
@@ -74,6 +77,14 @@ update msg (Model model) =
                 )
 
             GotThingFromThingForm (Err _) ->
+                ( model, Cmd.none )
+
+            GotRelayThingForm thing ->
+                ( { model | thing = Just thing }
+                , Modal.close
+                )
+
+            GotRelayError err ->
                 ( model, Cmd.none )
 
 
@@ -109,5 +120,7 @@ viewContent model =
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
     Sub.batch
-        [ ThingForm.subscribeGotThing GotThingFromThingForm
+        [ Relay.subscribe GotRelayError
+            [ ThingForm.receiver GotRelayThingForm
+            ]
         ]

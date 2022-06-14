@@ -1,21 +1,21 @@
 module Session exposing
-    ( Event(..)
-    , Msg
+    ( Msg
+    , RelayExternalMsg(..)
     , Session
     , clear
+    , externalReceiver
     , make
     , navKey
-    , subscribe
     , subscriptions
     , update
     , updateViewer
     , viewer
     )
 
-import Adapter
 import Browser.Navigation as Navigation
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Relay
 import Route
 import Viewer exposing (Viewer)
 
@@ -48,7 +48,8 @@ make navKey_ maybeViewer =
 
 
 type Msg
-    = GotExternalInput (Result Decode.Error ExternalInput)
+    = GotRelayInternalMsg RelayInternalMsg
+    | GotRelayError Decode.Error
 
 
 
@@ -58,25 +59,32 @@ type Msg
 update : Msg -> Session -> ( Session, Cmd Msg )
 update msg session =
     case msg of
-        GotExternalInput (Ok (UpdateViewer viewer_)) ->
+        GotRelayInternalMsg subMsg ->
+            updateRelayInternalMsg subMsg session
+
+        GotRelayError err ->
+            ( session, Cmd.none )
+
+
+updateRelayInternalMsg : RelayInternalMsg -> Session -> ( Session, Cmd Msg )
+updateRelayInternalMsg msg session =
+    case msg of
+        UpdateViewer viewer_ ->
             ( LoggedIn (navKey session) viewer_
             , Cmd.batch
-                [ publish Authenticated
+                [ Relay.publish (externalMessage Authenticated)
                 , Viewer.store viewer_
                 ]
             )
 
-        GotExternalInput (Ok Clear) ->
+        Clear ->
             ( Guest (navKey session)
             , Cmd.batch
-                [ publish SessionCleared
+                [ Relay.publish (externalMessage SessionCleared)
                 , Viewer.clear
                 , Route.replaceUrl (navKey session) Route.Login
                 ]
             )
-
-        GotExternalInput (Err err) ->
-            ( session, Cmd.none )
 
 
 
@@ -104,33 +112,42 @@ viewer session =
 
 
 
--- External Input
+-- INTERNAL RELAY
 
 
-type ExternalInput
+type RelayInternalMsg
     = UpdateViewer Viewer
     | Clear
 
 
+internalAdapter : Relay.Adapter
+internalAdapter =
+    Relay.internal "Session"
+
+
+internalMessage : RelayInternalMsg -> Relay.Message
+internalMessage msg =
+    Relay.message internalAdapter encodeRelayInternalMsg msg
+
+
 updateViewer : Viewer -> Cmd msg
 updateViewer viewer_ =
-    Adapter.primarySessionAdapterSendMessage (encodeExternalInput (UpdateViewer viewer_))
+    Relay.publish (internalMessage (UpdateViewer viewer_))
 
 
 clear : Cmd msg
 clear =
-    Adapter.primarySessionAdapterSendMessage (encodeExternalInput Clear)
+    Relay.publish (internalMessage Clear)
 
 
-externalInput : (Result Decode.Error ExternalInput -> Msg) -> Sub Msg
-externalInput tagger =
-    Adapter.primarySessionAdapterMessageReceiver
-        (tagger << Decode.decodeValue decoderExternalInput)
+internalReceiver : (RelayInternalMsg -> msg) -> Relay.Receiver msg
+internalReceiver tagger =
+    Relay.receiver internalAdapter (Decode.map tagger decoderRelayInternalMsg)
 
 
-encodeExternalInput : ExternalInput -> Encode.Value
-encodeExternalInput input =
-    case input of
+encodeRelayInternalMsg : RelayInternalMsg -> Encode.Value
+encodeRelayInternalMsg msg =
+    case msg of
         UpdateViewer viewer_ ->
             Encode.object
                 [ ( "constructor", Encode.string "UpdateViewer" )
@@ -141,8 +158,8 @@ encodeExternalInput input =
             Encode.object [ ( "constructor", Encode.string "Clear" ) ]
 
 
-decoderExternalInput : Decode.Decoder ExternalInput
-decoderExternalInput =
+decoderRelayInternalMsg : Decode.Decoder RelayInternalMsg
+decoderRelayInternalMsg =
     Decode.field "constructor" Decode.string
         |> Decode.andThen
             (\str ->
@@ -159,16 +176,31 @@ decoderExternalInput =
 
 
 
---  EVENTS
+--  EXTERNAL RELAY
 
 
-type Event
+type RelayExternalMsg
     = Authenticated
     | SessionCleared
 
 
-encodeEvent : Event -> Encode.Value
-encodeEvent input =
+externalAdapter : Relay.Adapter
+externalAdapter =
+    Relay.external "Session"
+
+
+externalMessage : RelayExternalMsg -> Relay.Message
+externalMessage msg =
+    Relay.message externalAdapter encodeRelayExternalMsg msg
+
+
+externalReceiver : (RelayExternalMsg -> msg) -> Relay.Receiver msg
+externalReceiver tagger =
+    Relay.receiver externalAdapter (Decode.map tagger decoderRelayExternalMsg)
+
+
+encodeRelayExternalMsg : RelayExternalMsg -> Encode.Value
+encodeRelayExternalMsg input =
     case input of
         Authenticated ->
             Encode.object [ ( "constructor", Encode.string "Authenticated" ) ]
@@ -177,8 +209,8 @@ encodeEvent input =
             Encode.object [ ( "constructor", Encode.string "SessionCleared" ) ]
 
 
-decoderEvent : Decode.Decoder Event
-decoderEvent =
+decoderRelayExternalMsg : Decode.Decoder RelayExternalMsg
+decoderRelayExternalMsg =
     Decode.field "constructor" Decode.string
         |> Decode.andThen
             (\str ->
@@ -194,17 +226,6 @@ decoderEvent =
             )
 
 
-publish : Event -> Cmd Msg
-publish event =
-    Adapter.secondarySessionAdapterSendMessage (encodeEvent event)
-
-
-subscribe : (Result Decode.Error Event -> msg) -> Sub msg
-subscribe tagger =
-    Adapter.secondarySessionAdapterMessageReceiver
-        (tagger << Decode.decodeValue decoderEvent)
-
-
 
 -- SUBSCRIPTIONS
 
@@ -212,6 +233,16 @@ subscribe tagger =
 subscriptions : Session -> Sub Msg
 subscriptions session =
     Sub.batch
-        [ externalInput GotExternalInput
-        , Viewer.onChangeFromOtherTab (GotExternalInput << Result.map UpdateViewer)
+        [ Relay.subscribe GotRelayError
+            [ internalReceiver GotRelayInternalMsg
+            ]
+        , Viewer.onChangeFromOtherTab
+            (\x ->
+                case x of
+                    Ok viewer_ ->
+                        GotRelayInternalMsg (UpdateViewer viewer_)
+
+                    Err err ->
+                        GotRelayError err
+            )
         ]

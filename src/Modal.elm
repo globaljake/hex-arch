@@ -1,6 +1,15 @@
-module Modal exposing (Modal, Msg, Variant(..), close, init, open, subscriptions, update, view)
+module Modal exposing
+    ( Modal
+    , Msg
+    , Variant(..)
+    , close
+    , init
+    , open
+    , subscriptions
+    , update
+    , view
+    )
 
-import Adapter
 import Api.HexArch.Data.Thing exposing (Thing)
 import Html exposing (Html)
 import Html.Attributes as Attributes
@@ -9,6 +18,7 @@ import Json.Decode.Pipeline as Decode
 import Json.Encode as Encode
 import Modal.Auth as Auth
 import Modal.EditProfile as EditProfile
+import Relay
 import Session exposing (Session)
 
 
@@ -62,7 +72,8 @@ initVariant variant modal =
 
 
 type Msg
-    = GotExternalInput (Result Decode.Error ExternalInput)
+    = GotRelayInternalMsg RelayInternalMsg
+    | GotRelayError Decode.Error
     | AuthMsg Auth.Msg
     | EditProfileMsg EditProfile.Msg
 
@@ -74,8 +85,11 @@ type Msg
 update : Session -> Msg -> Modal -> ( Modal, Cmd Msg )
 update session msg model =
     case ( msg, model ) of
-        ( GotExternalInput (Ok externalInput), _ ) ->
-            updateExternalInput externalInput model
+        ( GotRelayInternalMsg subMsg, _ ) ->
+            updateRelayInternalMsg subMsg model
+
+        ( GotRelayError err, _ ) ->
+            ( model, Cmd.none )
 
         ( AuthMsg subMsg, Auth subModel ) ->
             Auth.update subMsg subModel
@@ -89,9 +103,9 @@ update session msg model =
             ( model, Cmd.none )
 
 
-updateExternalInput : ExternalInput -> Modal -> ( Modal, Cmd Msg )
-updateExternalInput externalInput modal =
-    case externalInput of
+updateRelayInternalMsg : RelayInternalMsg -> Modal -> ( Modal, Cmd Msg )
+updateRelayInternalMsg msg modal =
+    case msg of
         OpenModal variant ->
             initVariant variant modal
 
@@ -126,32 +140,41 @@ viewContent content =
 
 
 
--- EXTERNAL INPUT
+-- INTERNAL RELAY
 
 
-type ExternalInput
+type RelayInternalMsg
     = OpenModal Variant
     | CloseModal
 
 
+internalAdapter : Relay.Adapter
+internalAdapter =
+    Relay.internal "Modal"
+
+
+internalMessage : RelayInternalMsg -> Relay.Message
+internalMessage msg =
+    Relay.message internalAdapter encodeRelayInternalMsg msg
+
+
 open : Variant -> Cmd msg
 open variant =
-    Adapter.primaryModalAdapterSendMessage (encodeExternalInput (OpenModal variant))
+    Relay.publish (internalMessage (OpenModal variant))
 
 
 close : Cmd msg
 close =
-    Adapter.primaryModalAdapterSendMessage (encodeExternalInput CloseModal)
+    Relay.publish (internalMessage CloseModal)
 
 
-subscribeExternalInput : (Result Decode.Error ExternalInput -> Msg) -> Sub Msg
-subscribeExternalInput tagger =
-    Adapter.primaryModalAdapterMessageReceiver
-        (tagger << Decode.decodeValue decoderExternalInput)
+internalReceiver : (RelayInternalMsg -> msg) -> Relay.Receiver msg
+internalReceiver tagger =
+    Relay.receiver internalAdapter (Decode.map tagger decoderRelayInternalMsg)
 
 
-encodeExternalInput : ExternalInput -> Encode.Value
-encodeExternalInput input =
+encodeRelayInternalMsg : RelayInternalMsg -> Encode.Value
+encodeRelayInternalMsg input =
     case input of
         OpenModal variant ->
             Encode.object
@@ -163,8 +186,8 @@ encodeExternalInput input =
             Encode.object [ ( "constructor", Encode.string "CloseModal" ) ]
 
 
-decoderExternalInput : Decode.Decoder ExternalInput
-decoderExternalInput =
+decoderRelayInternalMsg : Decode.Decoder RelayInternalMsg
+decoderRelayInternalMsg =
     Decode.field "constructor" Decode.string
         |> Decode.andThen
             (\str ->
@@ -215,8 +238,10 @@ decoderVariant =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Sub Msg
-subscriptions =
+subscriptions : Modal -> Sub Msg
+subscriptions modal =
     Sub.batch
-        [ subscribeExternalInput GotExternalInput
+        [ Relay.subscribe GotRelayError
+            [ internalReceiver GotRelayInternalMsg
+            ]
         ]

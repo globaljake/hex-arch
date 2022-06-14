@@ -5,6 +5,7 @@ import Page.Dashboard as Dashboard
 import Page.Forms as Forms
 import Page.Login as Login
 import Page.NotFound as NotFound
+import Relay
 import Route as Route exposing (Route)
 import Session as Session exposing (Session)
 import Ui.PageView as PageView exposing (PageView)

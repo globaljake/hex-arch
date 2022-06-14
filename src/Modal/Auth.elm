@@ -65,10 +65,6 @@ view model =
     Html.text "Auth Modal"
 
 
-
--- ADAPTERS
-
-
 encodeVariant : Variant -> Encode.Value
 encodeVariant variant =
     case variant of

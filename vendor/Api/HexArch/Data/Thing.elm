@@ -59,10 +59,6 @@ isActive (Thing thing) =
     thing.isActive
 
 
-
--- ADAPTERS
-
-
 encode : Thing -> Encode.Value
 encode thing =
     Encode.object

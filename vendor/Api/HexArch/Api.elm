@@ -24,10 +24,6 @@ authTokenHeader (AuthToken token) =
     Http.header "authorization" ("Bearer " ++ token)
 
 
-
--- ADAPTERS
-
-
 encodeAuthToken : AuthToken -> Encode.Value
 encodeAuthToken (AuthToken authToken) =
     Encode.string authToken
