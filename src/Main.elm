@@ -133,11 +133,11 @@ subscriptions (Model session page modal) =
         , Modal.subscriptions modal
             |> Sub.map ModalMsg
         , ExternalMsg.toSubscription GotRelayError
-            [ Session.receivers
+            [ Session.extMsgs
                 |> List.map (ExternalMsg.map SessionMsg)
-            , Page.receivers
+            , Page.extMsgs
                 |> List.map (ExternalMsg.map PageMsg)
-            , Modal.receivers
+            , Modal.extMsgs
                 |> List.map (ExternalMsg.map ModalMsg)
             ]
         ]

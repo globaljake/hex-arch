@@ -1,4 +1,4 @@
-module ExternalMsg.Modal exposing (AskMsg(..), close, open, receiver)
+module ExternalMsg.ModalAsk exposing (ExtMsg(..), close, extMsg, open)
 
 import ExternalMsg
 import Json.Decode as Decode
@@ -6,14 +6,54 @@ import Json.Encode as Encode
 import Modal.Variant as ModalVariant exposing (Variant)
 
 
-type AskMsg
+
+-- TYPE
+
+
+type ExtMsg
     = ToOpen Variant
     | ToClose
 
 
-encode : AskMsg -> Encode.Value
-encode input =
-    case input of
+
+-- MESSAGE ID
+
+
+messageId : ExternalMsg.MessageId
+messageId =
+    ExternalMsg.id "ModalAsk"
+
+
+
+-- SEND
+
+
+open : Variant -> Cmd msg
+open variant =
+    ExternalMsg.send messageId encode (ToOpen variant)
+
+
+close : Cmd msg
+close =
+    ExternalMsg.send messageId encode ToClose
+
+
+
+-- RECEIVE
+
+
+extMsg : (ExtMsg -> msg) -> ExternalMsg.ExternalMsg msg
+extMsg tagger =
+    ExternalMsg.extMsg messageId decoder tagger
+
+
+
+-- ENCODE / DECODE
+
+
+encode : ExtMsg -> Encode.Value
+encode msg =
+    case msg of
         ToOpen variant ->
             Encode.object
                 [ ( "constructor", Encode.string "ToOpen" )
@@ -24,7 +64,7 @@ encode input =
             Encode.object [ ( "constructor", Encode.string "ToClose" ) ]
 
 
-decoder : Decode.Decoder AskMsg
+decoder : Decode.Decoder ExtMsg
 decoder =
     Decode.field "constructor" Decode.string
         |> Decode.andThen
@@ -39,23 +79,3 @@ decoder =
                     _ ->
                         Decode.fail ("Type constructor could not be found: " ++ str)
             )
-
-
-messageId : ExternalMsg.MessageId
-messageId =
-    ExternalMsg.id "Modal"
-
-
-open : Variant -> Cmd msg
-open variant =
-    ExternalMsg.send messageId encode (ToOpen variant)
-
-
-close : Cmd msg
-close =
-    ExternalMsg.send messageId encode ToClose
-
-
-receiver : (AskMsg -> msg) -> ExternalMsg.Receiver msg
-receiver tagger =
-    ExternalMsg.receiver messageId decoder tagger

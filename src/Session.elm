@@ -1,19 +1,19 @@
 module Session exposing
     ( Msg
     , Session
+    , extMsgs
     , make
     , navKey
-    , receivers
     , subscriptions
     , update
     , viewer
     )
 
 import Browser.Navigation as Navigation
-import ExternalMsg
-import ExternalMsg.Session as ExtMsgSession
+import ExternalMsg exposing (ExternalMsg)
+import ExternalMsg.SessionAsk as SessionAsk
+import ExternalMsg.SessionInform as SessionInform
 import Json.Decode as Decode
-import Json.Encode as Encode
 import Route
 import Viewer exposing (Viewer)
 
@@ -46,7 +46,7 @@ make navKey_ maybeViewer =
 
 
 type Msg
-    = GotExternalMsg ExtMsgSession.AskMsg
+    = GotSessionAskExtMsg SessionAsk.ExtMsg
     | GotRelayError Decode.Error
 
 
@@ -57,28 +57,28 @@ type Msg
 update : Msg -> Session -> ( Session, Cmd Msg )
 update msg session =
     case msg of
-        GotExternalMsg subMsg ->
-            updateExternalMsg subMsg session
+        GotSessionAskExtMsg subMsg ->
+            updateSessionAskExtMsg subMsg session
 
         GotRelayError err ->
             ( session, Cmd.none )
 
 
-updateExternalMsg : ExtMsgSession.AskMsg -> Session -> ( Session, Cmd Msg )
-updateExternalMsg msg session =
+updateSessionAskExtMsg : SessionAsk.ExtMsg -> Session -> ( Session, Cmd Msg )
+updateSessionAskExtMsg msg session =
     case msg of
-        ExtMsgSession.UpdateViewer viewer_ ->
+        SessionAsk.UpdateViewer viewer_ ->
             ( LoggedIn (navKey session) viewer_
             , Cmd.batch
-                [ ExtMsgSession.inform ExtMsgSession.Authenticated
+                [ SessionInform.send SessionInform.Authenticated
                 , Viewer.store viewer_
                 ]
             )
 
-        ExtMsgSession.Clear ->
+        SessionAsk.Clear ->
             ( Guest (navKey session)
             , Cmd.batch
-                [ ExtMsgSession.inform ExtMsgSession.SessionCleared
+                [ SessionInform.send SessionInform.SessionCleared
                 , Viewer.clear
                 , Route.replaceUrl (navKey session) Route.Login
                 ]
@@ -120,7 +120,7 @@ subscriptions session =
             (\x ->
                 case x of
                     Ok viewer_ ->
-                        GotExternalMsg (ExtMsgSession.UpdateViewer viewer_)
+                        GotSessionAskExtMsg (SessionAsk.UpdateViewer viewer_)
 
                     Err err ->
                         GotRelayError err
@@ -128,7 +128,7 @@ subscriptions session =
         ]
 
 
-receivers : List (ExternalMsg.Receiver Msg)
-receivers =
-    [ ExtMsgSession.askReceiver GotExternalMsg
+extMsgs : List (ExternalMsg Msg)
+extMsgs =
+    [ SessionAsk.extMsg GotSessionAskExtMsg
     ]

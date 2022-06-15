@@ -1,6 +1,6 @@
 module Modal.SignIn exposing (Model, Msg, init, update, view)
 
-import ExternalMsg.Modal as ExtMsgModal
+import ExternalMsg.ModalAsk as ModalAsk
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
@@ -47,7 +47,7 @@ update msg (Model model) =
     Tuple.mapFirst Model <|
         case msg of
             ClickedCloseButton ->
-                ( model, ExtMsgModal.close )
+                ( model, ModalAsk.close )
 
 
 

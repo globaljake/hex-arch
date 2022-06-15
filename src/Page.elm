@@ -1,7 +1,7 @@
-module Page exposing (Msg, Page, init, layout, receivers, subscriptions, update)
+module Page exposing (Msg, Page, extMsgs, init, layout, subscriptions, update)
 
-import ExternalMsg
-import ExternalMsg.Session as ExtMsgSession
+import ExternalMsg exposing (ExternalMsg)
+import ExternalMsg.SessionAsk as SessionAsk
 import Html exposing (Html)
 import Page.Dashboard as Dashboard
 import Page.Login as Login
@@ -38,7 +38,7 @@ init url session =
 
                 Just Route.Logout ->
                     ( NotFound
-                    , ExtMsgSession.clear
+                    , SessionAsk.clear
                     )
 
                 Just Route.Dashboard ->
@@ -163,11 +163,11 @@ subscriptions page =
 -- RELAY
 
 
-receivers : List (ExternalMsg.Receiver Msg)
-receivers =
+extMsgs : List (ExternalMsg Msg)
+extMsgs =
     List.concat
-        [ Login.receivers
+        [ Login.extMsgs
             |> List.map (ExternalMsg.map LoginMsg)
-        , Dashboard.receivers
+        , Dashboard.extMsgs
             |> List.map (ExternalMsg.map DashboardMsg)
         ]

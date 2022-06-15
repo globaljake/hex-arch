@@ -1,9 +1,9 @@
-module Page.Dashboard exposing (Model, Msg, init, receivers, subscriptions, update, view)
+module Page.Dashboard exposing (Model, Msg, extMsgs, init, subscriptions, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
-import ExternalMsg
-import ExternalMsg.Modal as ExtMsgModal
-import ExternalMsg.ThingForm as ExtMsgThingForm
+import ExternalMsg exposing (ExternalMsg)
+import ExternalMsg.ModalAsk as ModalAsk
+import ExternalMsg.ThingFormInform as ThingFormInform
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Json.Decode as Decode
@@ -48,7 +48,7 @@ type Msg
     = GotStuff (Result () ())
     | GotOtherStuff (Result () ())
     | GotThingFromThingForm (Result Decode.Error Thing)
-    | GotThingFormExtMsg ExtMsgThingForm.InformMsg
+    | GotThingFormInformExtMsg ThingFormInform.ExtMsg
 
 
 
@@ -61,7 +61,7 @@ update msg (Model model) =
         case msg of
             GotStuff _ ->
                 ( model
-                , ExtMsgModal.open (ModalVariant.EditProfileModal ())
+                , ModalAsk.open (ModalVariant.EditProfileModal ())
                 )
 
             GotOtherStuff _ ->
@@ -72,15 +72,15 @@ update msg (Model model) =
 
             GotThingFromThingForm (Ok thing) ->
                 ( { model | thing = Just thing }
-                , ExtMsgModal.close
+                , ModalAsk.close
                 )
 
             GotThingFromThingForm (Err _) ->
                 ( model, Cmd.none )
 
-            GotThingFormExtMsg (ExtMsgThingForm.GotThing thing) ->
+            GotThingFormInformExtMsg (ThingFormInform.GotThing thing) ->
                 ( { model | thing = Just thing }
-                , ExtMsgModal.close
+                , ModalAsk.close
                 )
 
 
@@ -118,7 +118,7 @@ subscriptions (Model model) =
     Sub.none
 
 
-receivers : List (ExternalMsg.Receiver Msg)
-receivers =
-    [ ExtMsgThingForm.receiver GotThingFormExtMsg
+extMsgs : List (ExternalMsg Msg)
+extMsgs =
+    [ ThingFormInform.extMsg GotThingFormInformExtMsg
     ]

@@ -1,4 +1,4 @@
-port module ExternalMsg exposing (MessageId, Receiver, id, map, receiver, send, toSubscription)
+port module ExternalMsg exposing (ExternalMsg, MessageId, extMsg, id, map, send, toSubscription)
 
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Decode
@@ -9,8 +9,8 @@ type MessageId
     = MessageId String
 
 
-type Receiver msg
-    = Receiver MessageId (Decode.Decoder msg)
+type ExternalMsg msg
+    = ExternalMsg MessageId (Decode.Decoder msg)
 
 
 id : String -> MessageId
@@ -27,12 +27,12 @@ send (MessageId id_) encode payload =
             ]
 
 
-receiver : MessageId -> Decode.Decoder a -> (a -> msg) -> Receiver msg
-receiver messageId decoder tagger =
-    Receiver messageId (Decode.map tagger decoder)
+extMsg : MessageId -> Decode.Decoder a -> (a -> msg) -> ExternalMsg msg
+extMsg messageId decoder tagger =
+    ExternalMsg messageId (Decode.map tagger decoder)
 
 
-toSubscription : (Decode.Error -> msg) -> List (List (Receiver msg)) -> Sub msg
+toSubscription : (Decode.Error -> msg) -> List (List (ExternalMsg msg)) -> Sub msg
 toSubscription errorToMsg listReceivers =
     case List.concat listReceivers of
         [] ->
@@ -50,12 +50,12 @@ toSubscription errorToMsg listReceivers =
                 )
 
 
-decoderReceiverResult : List (Receiver msg) -> Decode.Decoder msg
+decoderReceiverResult : List (ExternalMsg msg) -> Decode.Decoder msg
 decoderReceiverResult list =
     let
-        matchMessageId decodedId (Receiver (MessageId id_) decoder) acc =
+        matchMessageId decodedId (ExternalMsg (MessageId id_) decoder) acc =
             if (acc == Nothing) && decodedId == id_ then
-                Just (Receiver (MessageId id_) decoder)
+                Just (ExternalMsg (MessageId id_) decoder)
 
             else
                 acc
@@ -63,7 +63,7 @@ decoderReceiverResult list =
     Decode.succeed
         (\decodedId ->
             case List.foldl (matchMessageId decodedId) Nothing list of
-                Just (Receiver _ decoder) ->
+                Just (ExternalMsg _ decoder) ->
                     Decode.field "payload" decoder
 
                 Nothing ->
@@ -77,9 +77,9 @@ decoderReceiverResult list =
 -- FUNCTOR
 
 
-map : (a -> msg) -> Receiver a -> Receiver msg
-map f (Receiver messageId decoderMsg) =
-    Receiver messageId (Decode.map f decoderMsg)
+map : (a -> msg) -> ExternalMsg a -> ExternalMsg msg
+map f (ExternalMsg messageId decoderMsg) =
+    ExternalMsg messageId (Decode.map f decoderMsg)
 
 
 

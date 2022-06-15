@@ -1,16 +1,15 @@
 module Modal exposing
     ( Modal
     , Msg
+    , extMsgs
     , init
-    , receivers
     , subscriptions
     , update
     , view
     )
 
-import Api.HexArch.Data.Thing exposing (Thing)
-import ExternalMsg
-import ExternalMsg.Modal as ExtMsgModal
+import ExternalMsg exposing (ExternalMsg)
+import ExternalMsg.ModalAsk as ModalAsk
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Modal.EditProfile as EditProfile
@@ -64,7 +63,7 @@ initVariant variant modal =
 
 
 type Msg
-    = GotExternalMsg ExtMsgModal.AskMsg
+    = GotModalAskExtMsg ModalAsk.ExtMsg
     | SignInMsg SignIn.Msg
     | EditProfileMsg EditProfile.Msg
 
@@ -76,8 +75,8 @@ type Msg
 update : Session -> Msg -> Modal -> ( Modal, Cmd Msg )
 update session msg model =
     case ( msg, model ) of
-        ( GotExternalMsg subMsg, _ ) ->
-            updateExternalMsg subMsg model
+        ( GotModalAskExtMsg subMsg, _ ) ->
+            updateModalAskExtMsg subMsg model
 
         ( SignInMsg subMsg, SignIn subModel ) ->
             SignIn.update subMsg subModel
@@ -91,13 +90,13 @@ update session msg model =
             ( model, Cmd.none )
 
 
-updateExternalMsg : ExtMsgModal.AskMsg -> Modal -> ( Modal, Cmd Msg )
-updateExternalMsg msg modal =
+updateModalAskExtMsg : ModalAsk.ExtMsg -> Modal -> ( Modal, Cmd Msg )
+updateModalAskExtMsg msg modal =
     case msg of
-        ExtMsgModal.ToOpen variant ->
+        ModalAsk.ToOpen variant ->
             initVariant variant modal
 
-        ExtMsgModal.ToClose ->
+        ModalAsk.ToClose ->
             ( Hidden, Cmd.none )
 
 
@@ -136,7 +135,7 @@ subscriptions modal =
     Sub.none
 
 
-receivers : List (ExternalMsg.Receiver Msg)
-receivers =
-    [ ExtMsgModal.receiver GotExternalMsg
+extMsgs : List (ExternalMsg Msg)
+extMsgs =
+    [ ModalAsk.extMsg GotModalAskExtMsg
     ]

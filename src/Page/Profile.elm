@@ -1,7 +1,7 @@
 module Page.Profile exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
-import ExternalMsg.Modal as ExtMsgModal
+import ExternalMsg.ModalAsk as ModalAsk
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
@@ -64,7 +64,7 @@ update session msg (Model model) =
         case msg of
             GotStuff _ ->
                 ( model
-                , ExtMsgModal.open (ModalVariant.SignInModal ())
+                , ModalAsk.open (ModalVariant.SignInModal ())
                 )
 
             GotOtherStuff _ ->

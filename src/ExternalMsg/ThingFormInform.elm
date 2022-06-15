@@ -1,4 +1,4 @@
-module ExternalMsg.ThingForm exposing (InformMsg(..), inform, receiver)
+module ExternalMsg.ThingFormInform exposing (ExtMsg(..), extMsg, send)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import ExternalMsg
@@ -6,11 +6,46 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
-type InformMsg
+
+-- TYPE
+
+
+type ExtMsg
     = GotThing Thing
 
 
-encode : InformMsg -> Encode.Value
+
+-- MESSAGE ID
+
+
+messageId : ExternalMsg.MessageId
+messageId =
+    ExternalMsg.id "ThingFormInform"
+
+
+
+-- SEND
+
+
+send : Thing -> Cmd msg
+send thing =
+    ExternalMsg.send messageId encode (GotThing thing)
+
+
+
+-- RECEIVE
+
+
+extMsg : (ExtMsg -> msg) -> ExternalMsg.ExternalMsg msg
+extMsg tagger =
+    ExternalMsg.extMsg messageId decoder tagger
+
+
+
+-- ENCODE / DECODE
+
+
+encode : ExtMsg -> Encode.Value
 encode msg =
     case msg of
         GotThing thing ->
@@ -20,7 +55,7 @@ encode msg =
                 ]
 
 
-decoder : Decode.Decoder InformMsg
+decoder : Decode.Decoder ExtMsg
 decoder =
     Decode.field "constructor" Decode.string
         |> Decode.andThen
@@ -32,18 +67,3 @@ decoder =
                     _ ->
                         Decode.fail ("Type constructor could not be found: " ++ str)
             )
-
-
-messageId : ExternalMsg.MessageId
-messageId =
-    ExternalMsg.id "ThingForm"
-
-
-inform : Thing -> Cmd msg
-inform thing =
-    ExternalMsg.send messageId encode (GotThing thing)
-
-
-receiver : (InformMsg -> msg) -> ExternalMsg.Receiver msg
-receiver tagger =
-    ExternalMsg.receiver messageId decoder tagger
