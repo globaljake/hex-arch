@@ -3,7 +3,7 @@ import "./index.css";
 import { Elm } from "./Main.elm";
 
 import Viewer from "./Viewer";
-import Relay from "./Relay";
+import ExternalMsg from "./ExternalMsg";
 
 const flags = { viewer: Viewer.getLocalStorage() };
 
@@ -13,4 +13,4 @@ const app = Elm.Main.init({
 });
 
 Viewer.start(app);
-Relay.start(app);
+ExternalMsg.start(app);

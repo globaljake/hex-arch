@@ -1,11 +1,11 @@
-module Ui.ThingForm exposing (Model, Msg, init, receiver, update, view)
+module Ui.ThingForm exposing (Model, Msg, init, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
+import ExternalMsg.ThingForm as ExtMsgThingForm
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Json.Decode as Decode
-import Relay
 
 
 
@@ -45,7 +45,7 @@ update msg (Model model) =
         case msg of
             ClickedButtonToGrabThing ->
                 ( model
-                , Relay.publish (message Thing.mock)
+                , ExtMsgThingForm.inform Thing.mock
                 )
 
 
@@ -70,25 +70,6 @@ view model =
                 ]
             ]
         ]
-
-
-
--- RELAY
-
-
-adapter : Relay.Adapter
-adapter =
-    Relay.external "Ui.ThingForm"
-
-
-message : Thing -> Relay.Message
-message =
-    Relay.message adapter Thing.encode
-
-
-receiver : (Thing -> msg) -> Relay.Receiver msg
-receiver tagger =
-    Relay.receiver adapter (Decode.map tagger Thing.decoder)
 
 
 

@@ -2,13 +2,13 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Navigation
+import ExternalMsg
 import Flags exposing (Flags)
 import Html
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Modal exposing (Modal)
 import Page exposing (Page)
-import Relay
 import Session exposing (Session)
 import Url exposing (Url)
 
@@ -27,10 +27,12 @@ type Model
 
 init : Flags -> Url -> Navigation.Key -> ( Model, Cmd Msg )
 init flags url navKey =
-    let
-        session =
-            Session.make navKey flags.viewer
+    initChangedUrl (Session.make navKey flags.viewer) url
 
+
+initChangedUrl : Session -> Url -> ( Model, Cmd Msg )
+initChangedUrl session url =
+    let
         ( page, pageCmd ) =
             Page.init url session
 
@@ -78,8 +80,7 @@ update msg (Model session page modal) =
                     )
 
         ChangedUrl url ->
-            Page.init url session
-                |> Tuple.mapBoth (\p -> Model session p modal) (Cmd.map PageMsg)
+            initChangedUrl session url
 
         SessionMsg subMsg ->
             Session.update subMsg session
@@ -131,16 +132,14 @@ subscriptions (Model session page modal) =
             |> Sub.map PageMsg
         , Modal.subscriptions modal
             |> Sub.map ModalMsg
-        , Relay.subscribe GotRelayError
-            (List.concat
-                [ Session.receivers
-                    |> List.map (Relay.map SessionMsg)
-                , Page.receivers
-                    |> List.map (Relay.map PageMsg)
-                , Modal.receivers
-                    |> List.map (Relay.map ModalMsg)
-                ]
-            )
+        , ExternalMsg.toSubscription GotRelayError
+            [ Session.receivers
+                |> List.map (ExternalMsg.map SessionMsg)
+            , Page.receivers
+                |> List.map (ExternalMsg.map PageMsg)
+            , Modal.receivers
+                |> List.map (ExternalMsg.map ModalMsg)
+            ]
         ]
 
 

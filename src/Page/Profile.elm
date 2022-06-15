@@ -1,12 +1,13 @@
 module Page.Profile exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
+import ExternalMsg.Modal as ExtMsgModal
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Http
+import Modal.Variant as ModalVariant
 import Process
-import Relay exposing (Receiver)
 import Route
 import Session exposing (Session)
 import Task
@@ -63,11 +64,7 @@ update session msg (Model model) =
         case msg of
             GotStuff _ ->
                 ( model
-                , Cmd.batch
-                    [ Toast.add Toast.Hey
-                    , Toast.add Toast.LookAtMe
-                    , Toast.add Toast.ImAToast
-                    ]
+                , ExtMsgModal.open (ModalVariant.SignInModal ())
                 )
 
             GotOtherStuff _ ->

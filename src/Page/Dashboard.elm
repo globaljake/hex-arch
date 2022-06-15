@@ -1,17 +1,17 @@
 module Page.Dashboard exposing (Model, Msg, init, receivers, subscriptions, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
+import ExternalMsg
+import ExternalMsg.Modal as ExtMsgModal
+import ExternalMsg.ThingForm as ExtMsgThingForm
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Json.Decode as Decode
-import Modal
+import Modal.Variant as ModalVariant
 import Process
-import Relay
 import Session exposing (Session)
 import Task
-import Toast
 import Ui.PageView as PageView exposing (PageView)
-import Ui.ThingForm as ThingForm
 
 
 
@@ -48,7 +48,7 @@ type Msg
     = GotStuff (Result () ())
     | GotOtherStuff (Result () ())
     | GotThingFromThingForm (Result Decode.Error Thing)
-    | GotRelayThingForm Thing
+    | GotThingFormExtMsg ExtMsgThingForm.InformMsg
 
 
 
@@ -61,7 +61,7 @@ update msg (Model model) =
         case msg of
             GotStuff _ ->
                 ( model
-                , Modal.open Modal.EditProfileModal
+                , ExtMsgModal.open (ModalVariant.EditProfileModal ())
                 )
 
             GotOtherStuff _ ->
@@ -72,15 +72,15 @@ update msg (Model model) =
 
             GotThingFromThingForm (Ok thing) ->
                 ( { model | thing = Just thing }
-                , Modal.close
+                , ExtMsgModal.close
                 )
 
             GotThingFromThingForm (Err _) ->
                 ( model, Cmd.none )
 
-            GotRelayThingForm thing ->
+            GotThingFormExtMsg (ExtMsgThingForm.GotThing thing) ->
                 ( { model | thing = Just thing }
-                , Modal.close
+                , ExtMsgModal.close
                 )
 
 
@@ -115,11 +115,10 @@ viewContent model =
 
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
-    Sub.batch
-        []
+    Sub.none
 
 
-receivers : List (Relay.Receiver Msg)
+receivers : List (ExternalMsg.Receiver Msg)
 receivers =
-    [ ThingForm.receiver GotRelayThingForm
+    [ ExtMsgThingForm.receiver GotThingFormExtMsg
     ]

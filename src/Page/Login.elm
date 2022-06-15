@@ -1,11 +1,12 @@
 module Page.Login exposing (Model, Msg, init, receivers, subscriptions, update, view)
 
+import ExternalMsg
+import ExternalMsg.Session as ExtMsgSession
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Http
 import Json.Decode as Decode
-import Relay
 import RemoteData exposing (RemoteData)
 import Route
 import Session exposing (Session)
@@ -61,7 +62,7 @@ type Msg
     | ChangedPassword String
     | SubmitedForm
     | GotViewer (Result Http.Error Viewer)
-    | GotRelaySessionExternalMsg Session.RelayExternalMsg
+    | GotSessionExternalMsg ExtMsgSession.InformMsg
     | GotRelayError Decode.Error
     | NoOp
 
@@ -87,12 +88,12 @@ update session msg (Model model) =
                 )
 
             GotViewer (Ok viewer) ->
-                ( model, Session.updateViewer viewer )
+                ( model, ExtMsgSession.updateViewer viewer )
 
             GotViewer (Err _) ->
                 ( model, Cmd.none )
 
-            GotRelaySessionExternalMsg relayMsg ->
+            GotSessionExternalMsg extMsg ->
                 ( model, Route.replaceUrl (Session.navKey session) Route.Dashboard )
 
             GotRelayError err ->
@@ -165,7 +166,7 @@ subscriptions (Model model) =
     Sub.none
 
 
-receivers : List (Relay.Receiver Msg)
+receivers : List (ExternalMsg.Receiver Msg)
 receivers =
-    [ Session.externalReceiver GotRelaySessionExternalMsg
+    [ ExtMsgSession.informReceiver GotSessionExternalMsg
     ]

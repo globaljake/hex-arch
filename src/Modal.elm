@@ -1,10 +1,7 @@
 module Modal exposing
     ( Modal
     , Msg
-    , Variant(..)
-    , close
     , init
-    , open
     , receivers
     , subscriptions
     , update
@@ -12,14 +9,13 @@ module Modal exposing
     )
 
 import Api.HexArch.Data.Thing exposing (Thing)
+import ExternalMsg
+import ExternalMsg.Modal as ExtMsgModal
 import Html exposing (Html)
 import Html.Attributes as Attributes
-import Json.Decode as Decode
-import Json.Decode.Pipeline as Decode
-import Json.Encode as Encode
-import Modal.Auth as Auth
 import Modal.EditProfile as EditProfile
-import Relay
+import Modal.SignIn as SignIn
+import Modal.Variant as ModalVariant exposing (Variant)
 import Session exposing (Session)
 
 
@@ -29,13 +25,8 @@ import Session exposing (Session)
 
 type Modal
     = Hidden
-    | Auth Auth.Model
+    | SignIn SignIn.Model
     | EditProfile EditProfile.Model
-
-
-type Variant
-    = AuthModal Auth.Variant
-    | EditProfileModal
 
 
 
@@ -56,11 +47,11 @@ initVariant : Variant -> Modal -> ( Modal, Cmd Msg )
 initVariant variant modal =
     if modal == Hidden then
         case variant of
-            AuthModal subVariant ->
-                Auth.init subVariant
-                    |> Tuple.mapBoth Auth (Cmd.map AuthMsg)
+            ModalVariant.SignInModal _ ->
+                SignIn.init
+                    |> Tuple.mapBoth SignIn (Cmd.map SignInMsg)
 
-            EditProfileModal ->
+            ModalVariant.EditProfileModal _ ->
                 EditProfile.init
                     |> Tuple.mapBoth EditProfile (Cmd.map EditProfileMsg)
 
@@ -73,9 +64,8 @@ initVariant variant modal =
 
 
 type Msg
-    = GotRelayInternalMsg RelayInternalMsg
-    | GotRelayError Decode.Error
-    | AuthMsg Auth.Msg
+    = GotExternalMsg ExtMsgModal.AskMsg
+    | SignInMsg SignIn.Msg
     | EditProfileMsg EditProfile.Msg
 
 
@@ -86,15 +76,12 @@ type Msg
 update : Session -> Msg -> Modal -> ( Modal, Cmd Msg )
 update session msg model =
     case ( msg, model ) of
-        ( GotRelayInternalMsg subMsg, _ ) ->
-            updateRelayInternalMsg subMsg model
+        ( GotExternalMsg subMsg, _ ) ->
+            updateExternalMsg subMsg model
 
-        ( GotRelayError err, _ ) ->
-            ( model, Cmd.none )
-
-        ( AuthMsg subMsg, Auth subModel ) ->
-            Auth.update subMsg subModel
-                |> Tuple.mapBoth Auth (Cmd.map AuthMsg)
+        ( SignInMsg subMsg, SignIn subModel ) ->
+            SignIn.update subMsg subModel
+                |> Tuple.mapBoth SignIn (Cmd.map SignInMsg)
 
         ( EditProfileMsg subMsg, EditProfile subModel ) ->
             EditProfile.update subMsg subModel
@@ -104,13 +91,13 @@ update session msg model =
             ( model, Cmd.none )
 
 
-updateRelayInternalMsg : RelayInternalMsg -> Modal -> ( Modal, Cmd Msg )
-updateRelayInternalMsg msg modal =
+updateExternalMsg : ExtMsgModal.AskMsg -> Modal -> ( Modal, Cmd Msg )
+updateExternalMsg msg modal =
     case msg of
-        OpenModal variant ->
+        ExtMsgModal.ToOpen variant ->
             initVariant variant modal
 
-        CloseModal ->
+        ExtMsgModal.ToClose ->
             ( Hidden, Cmd.none )
 
 
@@ -121,10 +108,10 @@ updateRelayInternalMsg msg modal =
 view : Modal -> Html Msg
 view modal =
     case modal of
-        Auth subModel ->
-            Auth.view subModel
+        SignIn subModel ->
+            SignIn.view subModel
                 |> viewContent
-                |> Html.map AuthMsg
+                |> Html.map SignInMsg
 
         EditProfile subModel ->
             EditProfile.view subModel
@@ -141,101 +128,6 @@ viewContent content =
 
 
 
--- INTERNAL RELAY
-
-
-type RelayInternalMsg
-    = OpenModal Variant
-    | CloseModal
-
-
-internalAdapter : Relay.Adapter
-internalAdapter =
-    Relay.internal "Modal"
-
-
-internalMessage : RelayInternalMsg -> Relay.Message
-internalMessage msg =
-    Relay.message internalAdapter encodeRelayInternalMsg msg
-
-
-open : Variant -> Cmd msg
-open variant =
-    Relay.publish (internalMessage (OpenModal variant))
-
-
-close : Cmd msg
-close =
-    Relay.publish (internalMessage CloseModal)
-
-
-internalReceiver : (RelayInternalMsg -> msg) -> Relay.Receiver msg
-internalReceiver tagger =
-    Relay.receiver internalAdapter (Decode.map tagger decoderRelayInternalMsg)
-
-
-encodeRelayInternalMsg : RelayInternalMsg -> Encode.Value
-encodeRelayInternalMsg input =
-    case input of
-        OpenModal variant ->
-            Encode.object
-                [ ( "constructor", Encode.string "OpenModal" )
-                , ( "payload", encodeVariant variant )
-                ]
-
-        CloseModal ->
-            Encode.object [ ( "constructor", Encode.string "CloseModal" ) ]
-
-
-decoderRelayInternalMsg : Decode.Decoder RelayInternalMsg
-decoderRelayInternalMsg =
-    Decode.field "constructor" Decode.string
-        |> Decode.andThen
-            (\str ->
-                case str of
-                    "OpenModal" ->
-                        Decode.map OpenModal (Decode.field "payload" decoderVariant)
-
-                    "CloseModal" ->
-                        Decode.succeed CloseModal
-
-                    _ ->
-                        Decode.fail ("Type constructor could not be found: " ++ str)
-            )
-
-
-encodeVariant : Variant -> Encode.Value
-encodeVariant variant =
-    case variant of
-        AuthModal subVariant ->
-            Encode.object
-                [ ( "constructor", Encode.string "AuthModal" )
-                , ( "payload", Auth.encodeVariant subVariant )
-                ]
-
-        EditProfileModal ->
-            Encode.object [ ( "constructor", Encode.string "EditProfileModal" ) ]
-
-
-decoderVariant : Decode.Decoder Variant
-decoderVariant =
-    Decode.field "constructor" Decode.string
-        |> Decode.andThen
-            (\s ->
-                case s of
-                    "AuthModal" ->
-                        Decode.succeed AuthModal
-                            |> Decode.required "payload" Auth.decoderVariant
-
-                    "EditProfileModal" ->
-                        Decode.succeed EditProfileModal
-
-                    _ ->
-                        Decode.fail "Not a type constructor for Modal.Variant"
-            )
-
-
-
 -- SUBSCRIPTIONS
 
 
@@ -244,7 +136,7 @@ subscriptions modal =
     Sub.none
 
 
-receivers : List (Relay.Receiver Msg)
+receivers : List (ExternalMsg.Receiver Msg)
 receivers =
-    [ internalReceiver GotRelayInternalMsg
+    [ ExtMsgModal.receiver GotExternalMsg
     ]
