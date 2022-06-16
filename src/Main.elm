@@ -57,7 +57,7 @@ type Msg
     | SessionMsg Session.Msg
     | PageMsg Page.Msg
     | ModalMsg Modal.Msg
-    | GotRelayError Decode.Error
+    | GotExtMsgError Decode.Error
 
 
 
@@ -94,7 +94,7 @@ update msg (Model session page modal) =
             Modal.update session subMsg modal
                 |> Tuple.mapBoth (\m -> Model session page m) (Cmd.map ModalMsg)
 
-        GotRelayError err ->
+        GotExtMsgError err ->
             ( Model session page modal, Cmd.none )
 
 
@@ -132,7 +132,7 @@ subscriptions (Model session page modal) =
             |> Sub.map PageMsg
         , Modal.subscriptions modal
             |> Sub.map ModalMsg
-        , ExternalMsg.toSubscription GotRelayError
+        , ExternalMsg.toSubscription GotExtMsgError
             [ Session.extMsgs
                 |> List.map (ExternalMsg.map SessionMsg)
             , Page.extMsgs

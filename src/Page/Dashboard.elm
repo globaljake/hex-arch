@@ -6,7 +6,6 @@ import ExternalMsg.ModalAsk as ModalAsk
 import ExternalMsg.ThingFormInform as ThingFormInform
 import Html exposing (Html)
 import Html.Attributes as Attributes
-import Json.Decode as Decode
 import Modal.Variant as ModalVariant
 import Process
 import Session exposing (Session)
@@ -47,7 +46,6 @@ init session =
 type Msg
     = GotStuff (Result () ())
     | GotOtherStuff (Result () ())
-    | GotThingFromThingForm (Result Decode.Error Thing)
     | GotThingFormInformExtMsg ThingFormInform.ExtMsg
 
 
@@ -69,14 +67,6 @@ update msg (Model model) =
                 , Cmd.batch
                     []
                 )
-
-            GotThingFromThingForm (Ok thing) ->
-                ( { model | thing = Just thing }
-                , ModalAsk.close
-                )
-
-            GotThingFromThingForm (Err _) ->
-                ( model, Cmd.none )
 
             GotThingFormInformExtMsg (ThingFormInform.GotThing thing) ->
                 ( { model | thing = Just thing }

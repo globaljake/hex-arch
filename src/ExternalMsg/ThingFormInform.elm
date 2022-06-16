@@ -18,9 +18,9 @@ type ExtMsg
 -- MESSAGE ID
 
 
-messageId : ExternalMsg.MessageId
-messageId =
-    ExternalMsg.id "ThingFormInform"
+key : ExternalMsg.Key
+key =
+    ExternalMsg.key "ThingFormInform"
 
 
 
@@ -29,7 +29,7 @@ messageId =
 
 send : Thing -> Cmd msg
 send thing =
-    ExternalMsg.send messageId encode (GotThing thing)
+    ExternalMsg.send key encode (GotThing thing)
 
 
 
@@ -38,7 +38,7 @@ send thing =
 
 extMsg : (ExtMsg -> msg) -> ExternalMsg.ExternalMsg msg
 extMsg tagger =
-    ExternalMsg.extMsg messageId decoder tagger
+    ExternalMsg.extMsg key decoder tagger
 
 
 

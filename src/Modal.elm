@@ -137,5 +137,8 @@ subscriptions modal =
 
 extMsgs : List (ExternalMsg Msg)
 extMsgs =
-    [ ModalAsk.extMsg GotModalAskExtMsg
-    ]
+    List.concat
+        [ [ ModalAsk.extMsg GotModalAskExtMsg ]
+        , EditProfile.extMsgs
+            |> List.map (ExternalMsg.map EditProfileMsg)
+        ]

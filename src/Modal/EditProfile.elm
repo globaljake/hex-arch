@@ -1,5 +1,8 @@
-module Modal.EditProfile exposing (Model, Msg, init, update, view)
+module Modal.EditProfile exposing (Model, Msg, extMsgs, init, update, view)
 
+import ExternalMsg exposing (ExternalMsg)
+import ExternalMsg.ModalAsk as ModalAsk
+import ExternalMsg.ThingFormInform as ThingFormInform
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Ui.ThingForm as ThingForm
@@ -34,6 +37,7 @@ init =
 
 type Msg
     = ThingFormMsg ThingForm.Msg
+    | GotThingFormInformExtMsg ThingFormInform.ExtMsg
 
 
 
@@ -51,6 +55,9 @@ update msg (Model model) =
                             , Cmd.map ThingFormMsg subCmd
                             )
                        )
+
+            GotThingFormInformExtMsg extMsg ->
+                ( model, Cmd.none )
 
 
 
@@ -77,3 +84,9 @@ view (Model model) =
 subscription : model -> Sub Msg
 subscription model =
     Sub.none
+
+
+extMsgs : List (ExternalMsg Msg)
+extMsgs =
+    [ ThingFormInform.extMsg GotThingFormInformExtMsg
+    ]

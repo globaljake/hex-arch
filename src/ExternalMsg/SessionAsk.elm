@@ -19,9 +19,9 @@ type ExtMsg
 -- MESSAGE ID
 
 
-messageId : ExternalMsg.MessageId
-messageId =
-    ExternalMsg.id "SessionAsk"
+key : ExternalMsg.Key
+key =
+    ExternalMsg.key "SessionAsk"
 
 
 
@@ -30,12 +30,12 @@ messageId =
 
 updateViewer : Viewer -> Cmd msg
 updateViewer viewer =
-    ExternalMsg.send messageId encode (UpdateViewer viewer)
+    ExternalMsg.send key encode (UpdateViewer viewer)
 
 
 clear : Cmd msg
 clear =
-    ExternalMsg.send messageId encode Clear
+    ExternalMsg.send key encode Clear
 
 
 
@@ -44,7 +44,7 @@ clear =
 
 extMsg : (ExtMsg -> msg) -> ExternalMsg msg
 extMsg tagger =
-    ExternalMsg.extMsg messageId decoder tagger
+    ExternalMsg.extMsg key decoder tagger
 
 
 

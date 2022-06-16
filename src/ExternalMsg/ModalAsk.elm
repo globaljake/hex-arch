@@ -1,6 +1,6 @@
 module ExternalMsg.ModalAsk exposing (ExtMsg(..), close, extMsg, open)
 
-import ExternalMsg
+import ExternalMsg exposing (ExternalMsg)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Modal.Variant as ModalVariant exposing (Variant)
@@ -19,9 +19,9 @@ type ExtMsg
 -- MESSAGE ID
 
 
-messageId : ExternalMsg.MessageId
-messageId =
-    ExternalMsg.id "ModalAsk"
+key : ExternalMsg.Key
+key =
+    ExternalMsg.key "ModalAsk"
 
 
 
@@ -30,21 +30,21 @@ messageId =
 
 open : Variant -> Cmd msg
 open variant =
-    ExternalMsg.send messageId encode (ToOpen variant)
+    ExternalMsg.send key encode (ToOpen variant)
 
 
 close : Cmd msg
 close =
-    ExternalMsg.send messageId encode ToClose
+    ExternalMsg.send key encode ToClose
 
 
 
 -- RECEIVE
 
 
-extMsg : (ExtMsg -> msg) -> ExternalMsg.ExternalMsg msg
+extMsg : (ExtMsg -> msg) -> ExternalMsg msg
 extMsg tagger =
-    ExternalMsg.extMsg messageId decoder tagger
+    ExternalMsg.extMsg key decoder tagger
 
 
 
