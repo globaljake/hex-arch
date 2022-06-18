@@ -1,12 +1,4 @@
-module Modal exposing
-    ( Modal
-    , Msg
-    , extMsgs
-    , init
-    , subscriptions
-    , update
-    , view
-    )
+module Modal exposing (Modal, Msg, extMsgs, init, subscriptions, update, view)
 
 import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.ModalAsk as ModalAsk

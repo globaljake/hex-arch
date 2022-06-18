@@ -16,7 +16,7 @@ type ExtMsg
 
 
 
--- MESSAGE ID
+-- KEY
 
 
 key : ExternalMsg.Key

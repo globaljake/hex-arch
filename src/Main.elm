@@ -57,7 +57,7 @@ type Msg
     | SessionMsg Session.Msg
     | PageMsg Page.Msg
     | ModalMsg Modal.Msg
-    | GotExtMsgError Decode.Error
+    | GotBatchedMsgs (Result Decode.Error (List Msg))
 
 
 
@@ -94,8 +94,22 @@ update msg (Model session page modal) =
             Modal.update session subMsg modal
                 |> Tuple.mapBoth (\m -> Model session page m) (Cmd.map ModalMsg)
 
-        GotExtMsgError err ->
+        GotBatchedMsgs (Ok msgs) ->
+            updateBatchedMsgs msgs (Model session page modal)
+
+        GotBatchedMsgs (Err _) ->
             ( Model session page modal, Cmd.none )
+
+
+updateBatchedMsgs : List Msg -> Model -> ( Model, Cmd Msg )
+updateBatchedMsgs msgs model =
+    List.foldl
+        (\msg ( newModel, newCmd ) ->
+            update msg newModel
+                |> Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, newCmd ])
+        )
+        ( model, Cmd.none )
+        msgs
 
 
 
@@ -132,14 +146,15 @@ subscriptions (Model session page modal) =
             |> Sub.map PageMsg
         , Modal.subscriptions modal
             |> Sub.map ModalMsg
-        , ExternalMsg.toSubscription GotExtMsgError
-            [ Session.extMsgs
-                |> List.map (ExternalMsg.map SessionMsg)
-            , Page.extMsgs
-                |> List.map (ExternalMsg.map PageMsg)
-            , Modal.extMsgs
-                |> List.map (ExternalMsg.map ModalMsg)
-            ]
+        , ExternalMsg.toSubscription GotBatchedMsgs <|
+            List.concat
+                [ Session.extMsgs
+                    |> List.map (ExternalMsg.map SessionMsg)
+                , Page.extMsgs
+                    |> List.map (ExternalMsg.map PageMsg)
+                , Modal.extMsgs
+                    |> List.map (ExternalMsg.map ModalMsg)
+                ]
         ]
 
 

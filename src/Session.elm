@@ -12,7 +12,6 @@ module Session exposing
 import Browser.Navigation as Navigation
 import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.SessionAsk as SessionAsk
-import ExternalMsg.SessionInform as SessionInform
 import Json.Decode as Decode
 import Route
 import Viewer exposing (Viewer)
@@ -70,16 +69,15 @@ updateSessionAskExtMsg msg session =
         SessionAsk.UpdateViewer viewer_ ->
             ( LoggedIn (navKey session) viewer_
             , Cmd.batch
-                [ SessionInform.send SessionInform.Authenticated
-                , Viewer.store viewer_
+                [ Viewer.store viewer_
+                , Route.replaceUrl (navKey session) Route.Dashboard
                 ]
             )
 
         SessionAsk.Clear ->
             ( Guest (navKey session)
             , Cmd.batch
-                [ SessionInform.send SessionInform.SessionCleared
-                , Viewer.clear
+                [ Viewer.clear
                 , Route.replaceUrl (navKey session) Route.Login
                 ]
             )

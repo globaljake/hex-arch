@@ -1,8 +1,7 @@
-module Page.Login exposing (Model, Msg, extMsgs, init, subscriptions, update, view)
+module Page.Login exposing (Model, Msg, init, subscriptions, update, view)
 
 import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.SessionAsk as SessionAsk
-import ExternalMsg.SessionInform as SessionInform
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
@@ -63,9 +62,6 @@ type Msg
     | ChangedPassword String
     | SubmitedForm
     | GotViewer (Result Http.Error Viewer)
-    | GotSessionInformExtMsg SessionInform.ExtMsg
-    | GotRelayError Decode.Error
-    | NoOp
 
 
 
@@ -92,15 +88,6 @@ update session msg (Model model) =
                 ( model, SessionAsk.updateViewer viewer )
 
             GotViewer (Err _) ->
-                ( model, Cmd.none )
-
-            GotSessionInformExtMsg extMsg ->
-                ( model, Route.replaceUrl (Session.navKey session) Route.Dashboard )
-
-            GotRelayError err ->
-                ( model, Cmd.none )
-
-            NoOp ->
                 ( model, Cmd.none )
 
 
@@ -165,9 +152,3 @@ viewContent model =
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
     Sub.none
-
-
-extMsgs : List (ExternalMsg Msg)
-extMsgs =
-    [ SessionInform.extMsg GotSessionInformExtMsg
-    ]

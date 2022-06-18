@@ -1,11 +1,10 @@
 module Ui.ThingForm exposing (Model, Msg, init, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
-import ExternalMsg.ThingFormInform as ThingFormInform
+import ExternalMsg.ThingFormNotify as ThingFormNotify
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
-import Json.Decode as Decode
 
 
 
@@ -45,7 +44,7 @@ update msg (Model model) =
         case msg of
             ClickedButtonToGrabThing ->
                 ( model
-                , ThingFormInform.send Thing.mock
+                , ThingFormNotify.send Thing.mock
                 )
 
 

@@ -3,7 +3,7 @@ module Page.Dashboard exposing (Model, Msg, extMsgs, init, subscriptions, update
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.ModalAsk as ModalAsk
-import ExternalMsg.ThingFormInform as ThingFormInform
+import ExternalMsg.ThingFormNotify as ThingFormNotify
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Modal.Variant as ModalVariant
@@ -31,9 +31,9 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( Model { feed = [], thing = Nothing }
     , Cmd.batch
-        [ Process.sleep 3000
+        [ Process.sleep 1000
             |> Task.attempt GotStuff
-        , Process.sleep 4000
+        , Process.sleep 2000
             |> Task.attempt GotOtherStuff
         ]
     )
@@ -46,7 +46,7 @@ init session =
 type Msg
     = GotStuff (Result () ())
     | GotOtherStuff (Result () ())
-    | GotThingFormInformExtMsg ThingFormInform.ExtMsg
+    | GotThingFormNotifyExtMsg ThingFormNotify.ExtMsg
 
 
 
@@ -68,9 +68,9 @@ update msg (Model model) =
                     []
                 )
 
-            GotThingFormInformExtMsg (ThingFormInform.GotThing thing) ->
+            GotThingFormNotifyExtMsg (ThingFormNotify.GotThing thing) ->
                 ( { model | thing = Just thing }
-                , ModalAsk.close
+                , Cmd.none
                 )
 
 
@@ -110,5 +110,5 @@ subscriptions (Model model) =
 
 extMsgs : List (ExternalMsg Msg)
 extMsgs =
-    [ ThingFormInform.extMsg GotThingFormInformExtMsg
+    [ ThingFormNotify.extMsg GotThingFormNotifyExtMsg
     ]

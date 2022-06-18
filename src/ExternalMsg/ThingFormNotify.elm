@@ -1,4 +1,4 @@
-module ExternalMsg.ThingFormInform exposing (ExtMsg(..), extMsg, send)
+module ExternalMsg.ThingFormNotify exposing (ExtMsg(..), extMsg, send)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import ExternalMsg
@@ -15,12 +15,12 @@ type ExtMsg
 
 
 
--- MESSAGE ID
+-- KEY
 
 
 key : ExternalMsg.Key
 key =
-    ExternalMsg.key "ThingFormInform"
+    ExternalMsg.key "ThingFormNotify"
 
 
 

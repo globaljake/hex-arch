@@ -2,7 +2,7 @@ module Modal.EditProfile exposing (Model, Msg, extMsgs, init, update, view)
 
 import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.ModalAsk as ModalAsk
-import ExternalMsg.ThingFormInform as ThingFormInform
+import ExternalMsg.ThingFormNotify as ThingFormNotify
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Ui.ThingForm as ThingForm
@@ -37,7 +37,7 @@ init =
 
 type Msg
     = ThingFormMsg ThingForm.Msg
-    | GotThingFormInformExtMsg ThingFormInform.ExtMsg
+    | GotThingFormNotifyExtMsg ThingFormNotify.ExtMsg
 
 
 
@@ -56,8 +56,10 @@ update msg (Model model) =
                             )
                        )
 
-            GotThingFormInformExtMsg extMsg ->
-                ( model, Cmd.none )
+            GotThingFormNotifyExtMsg extMsg ->
+                ( model
+                , ModalAsk.close
+                )
 
 
 
@@ -88,5 +90,5 @@ subscription model =
 
 extMsgs : List (ExternalMsg Msg)
 extMsgs =
-    [ ThingFormInform.extMsg GotThingFormInformExtMsg
+    [ ThingFormNotify.extMsg GotThingFormNotifyExtMsg
     ]

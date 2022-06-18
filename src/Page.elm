@@ -166,8 +166,6 @@ subscriptions page =
 extMsgs : List (ExternalMsg Msg)
 extMsgs =
     List.concat
-        [ Login.extMsgs
-            |> List.map (ExternalMsg.map LoginMsg)
-        , Dashboard.extMsgs
+        [ Dashboard.extMsgs
             |> List.map (ExternalMsg.map DashboardMsg)
         ]
