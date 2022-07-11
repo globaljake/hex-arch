@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Navigation
-import ExternalMsg
+import ExternalMsg exposing (ExternalMsg)
 import Flags exposing (Flags)
 import Html
 import Json.Decode as Decode
@@ -118,23 +118,16 @@ updateBatchedMsgs msgs model =
 
 view : Model -> Browser.Document Msg
 view (Model session page modal) =
-    -- TODO: rethink through layout / page / modal / notifications and how to view them
-    -- create multiple layouts and display notifications and modals depending on the layout
-    let
-        ( title, content ) =
-            Page.layout PageMsg
-                { session = session
-                , page = page
-                , viewServices =
-                    Modal.view modal
-                        |> Html.map ModalMsg
-                }
-    in
-    { title = title, body = [ content ] }
-
-
-
--- SUBSCRIPTIONS
+    { title = Page.title session page
+    , body =
+        [ Html.main_ []
+            [ Page.view session page
+                |> Html.map PageMsg
+            , Modal.view modal
+                |> Html.map ModalMsg
+            ]
+        ]
+    }
 
 
 subscriptions : Model -> Sub Msg
@@ -146,15 +139,18 @@ subscriptions (Model session page modal) =
             |> Sub.map PageMsg
         , Modal.subscriptions modal
             |> Sub.map ModalMsg
-        , ExternalMsg.toSubscription GotBatchedMsgs <|
-            List.concat
-                [ Session.extMsgs
-                    |> List.map (ExternalMsg.map SessionMsg)
-                , Page.extMsgs
-                    |> List.map (ExternalMsg.map PageMsg)
-                , Modal.extMsgs
-                    |> List.map (ExternalMsg.map ModalMsg)
-                ]
+        ]
+
+
+extMsgs : Model -> List (ExternalMsg Msg)
+extMsgs (Model session page modal) =
+    List.concat
+        [ Session.extMsgs session
+            |> List.map (ExternalMsg.map SessionMsg)
+        , Page.extMsgs page
+            |> List.map (ExternalMsg.map PageMsg)
+        , Modal.extMsgs modal
+            |> List.map (ExternalMsg.map ModalMsg)
         ]
 
 
@@ -168,7 +164,12 @@ main =
         { init = init << Flags.fromValue
         , onUrlChange = ChangedUrl
         , onUrlRequest = ClickedLink
-        , subscriptions = subscriptions
+        , subscriptions =
+            \model ->
+                Sub.batch
+                    [ subscriptions model
+                    , ExternalMsg.toSubscription GotBatchedMsgs (extMsgs model)
+                    ]
         , update = update
         , view = view
         }

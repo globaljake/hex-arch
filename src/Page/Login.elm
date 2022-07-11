@@ -1,17 +1,14 @@
 module Page.Login exposing (Model, Msg, init, subscriptions, update, view)
 
-import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.SessionAsk as SessionAsk
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Http
-import Json.Decode as Decode
 import RemoteData exposing (RemoteData)
-import Route
 import Session exposing (Session)
 import Task
-import Ui.PageView as PageView exposing (PageView)
+import Ui.Template as Template
 import Viewer exposing (Viewer)
 
 
@@ -27,10 +24,6 @@ type alias Internal =
     { form : Form
     , response : RemoteData Http.Error Viewer
     }
-
-
-
--- TYPES
 
 
 type alias Form =
@@ -62,6 +55,11 @@ type Msg
     | ChangedPassword String
     | SubmitedForm
     | GotViewer (Result Http.Error Viewer)
+
+
+subscriptions : Model -> Sub Msg
+subscriptions (Model model) =
+    Sub.none
 
 
 
@@ -100,9 +98,9 @@ updateForm f model =
 -- OUTPUT
 
 
-view : Session -> Model -> PageView Msg
+view : Session -> Model -> Template.Content Msg
 view session (Model model) =
-    PageView.make (viewContent model)
+    Template.content ( "Login", viewContent model )
 
 
 viewContent : Internal -> Html Msg
@@ -143,12 +141,3 @@ viewContent model =
                 ]
             ]
         ]
-
-
-
--- PORTS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions (Model model) =
-    Sub.none

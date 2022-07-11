@@ -6,11 +6,11 @@ import ExternalMsg.ModalAsk as ModalAsk
 import ExternalMsg.ThingFormNotify as ThingFormNotify
 import Html exposing (Html)
 import Html.Attributes as Attributes
-import Modal.Variant as ModalVariant
+import ModalRoute as ModalRoute
 import Process
 import Session exposing (Session)
 import Task
-import Ui.PageView as PageView exposing (PageView)
+import Ui.Template as Template
 
 
 
@@ -25,6 +25,10 @@ type alias Internal =
     { feed : List ()
     , thing : Maybe Thing
     }
+
+
+
+-- INITIAL STATE
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -49,6 +53,17 @@ type Msg
     | GotThingFormNotifyExtMsg ThingFormNotify.ExtMsg
 
 
+subscriptions : Model -> Sub Msg
+subscriptions (Model model) =
+    Sub.none
+
+
+extMsgs : Model -> List (ExternalMsg Msg)
+extMsgs (Model model) =
+    [ ThingFormNotify.extMsg GotThingFormNotifyExtMsg
+    ]
+
+
 
 -- TRANSITION
 
@@ -59,7 +74,7 @@ update msg (Model model) =
         case msg of
             GotStuff _ ->
                 ( model
-                , ModalAsk.open (ModalVariant.EditProfileModal ())
+                , ModalAsk.open (ModalRoute.EditProfileModal ())
                 )
 
             GotOtherStuff _ ->
@@ -78,9 +93,9 @@ update msg (Model model) =
 -- OUTPUT
 
 
-view : Session -> Model -> PageView Msg
+view : Session -> Model -> Template.Content Msg
 view session (Model model) =
-    PageView.make (viewContent model)
+    Template.content ( "Dashboard", viewContent model )
 
 
 viewContent : Internal -> Html Msg
@@ -97,18 +112,3 @@ viewContent model =
                     , Html.span [] [ Html.text (Thing.lastName thing) ]
                     ]
         ]
-
-
-
--- PORTS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions (Model model) =
-    Sub.none
-
-
-extMsgs : List (ExternalMsg Msg)
-extMsgs =
-    [ ThingFormNotify.extMsg GotThingFormNotifyExtMsg
-    ]

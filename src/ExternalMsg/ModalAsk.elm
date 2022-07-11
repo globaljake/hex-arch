@@ -3,7 +3,7 @@ module ExternalMsg.ModalAsk exposing (ExtMsg(..), close, extMsg, open)
 import ExternalMsg exposing (ExternalMsg)
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Modal.Variant as ModalVariant exposing (Variant)
+import ModalRoute as ModalRoute exposing (ModalRoute)
 
 
 
@@ -11,7 +11,7 @@ import Modal.Variant as ModalVariant exposing (Variant)
 
 
 type ExtMsg
-    = ToOpen Variant
+    = ToOpen ModalRoute
     | ToClose
 
 
@@ -28,9 +28,9 @@ key =
 -- SEND
 
 
-open : Variant -> Cmd msg
-open variant =
-    ExternalMsg.send key encode (ToOpen variant)
+open : ModalRoute -> Cmd msg
+open modalRoute =
+    ExternalMsg.send key encode (ToOpen modalRoute)
 
 
 close : Cmd msg
@@ -54,10 +54,10 @@ extMsg tagger =
 encode : ExtMsg -> Encode.Value
 encode msg =
     case msg of
-        ToOpen variant ->
+        ToOpen modalRoute ->
             Encode.object
                 [ ( "constructor", Encode.string "ToOpen" )
-                , ( "payload", ModalVariant.encode variant )
+                , ( "payload", ModalRoute.encode modalRoute )
                 ]
 
         ToClose ->
@@ -71,7 +71,7 @@ decoder =
             (\str ->
                 case str of
                     "ToOpen" ->
-                        Decode.map ToOpen (Decode.field "payload" ModalVariant.decoder)
+                        Decode.map ToOpen (Decode.field "payload" ModalRoute.decoder)
 
                     "ToClose" ->
                         Decode.succeed ToClose

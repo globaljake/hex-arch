@@ -1,4 +1,4 @@
-module Ui.SidebarNav exposing (view)
+module Ui.Nav exposing (Nav, make, view)
 
 import Html exposing (Html)
 import Html.Attributes as Attributes
@@ -6,15 +6,32 @@ import Route exposing (Route)
 
 
 
+-- STATE
+
+
+type Nav
+    = Nav (Maybe Route)
+
+
+
+-- INITIAL STATE
+
+
+make : Maybe Route -> Nav
+make =
+    Nav
+
+
+
 -- OUTPUT
 
 
-view : Maybe Route -> Html msg
-view active =
+view : Nav -> Html msg
+view (Nav maybeActive) =
     Html.div [ Attributes.class "flex flex-col justify-between w-56 shadow bg-white" ]
         [ Html.div [ Attributes.class "w-full" ]
             [ viewLogo
-            , viewItems active
+            , viewItems maybeActive
             ]
         , Html.div []
             [ Html.a [ Route.href Route.Logout, Attributes.class "flex group p-4 relative w-full" ]

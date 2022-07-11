@@ -1,9 +1,9 @@
 module Page.NotFound exposing (view)
 
 import Html exposing (Html)
-import Ui.PageView as PageView exposing (PageView)
+import Ui.Template as Template
 
 
-view : PageView msg
+view : Template.Content msg
 view =
-    PageView.make (Html.div [] [ Html.text "Not Found Yo" ])
+    Template.content ( "Not Found", Html.div [] [ Html.text "Not Found Yo" ] )

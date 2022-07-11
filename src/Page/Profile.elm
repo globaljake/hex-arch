@@ -6,13 +6,13 @@ import Html exposing (Html)
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Http
-import Modal.Variant as ModalVariant
+import ModalRoute as ModalRoute
 import Process
 import Route
 import Session exposing (Session)
 import Task
 import Toast
-import Ui.PageView as PageView exposing (PageView)
+import Ui.Template as Template
 import Viewer exposing (Viewer)
 
 
@@ -27,6 +27,10 @@ type Model
 type alias Internal =
     { things : List Thing
     }
+
+
+
+-- INITIAL STATE
 
 
 init : Viewer -> Session -> ( Model, Cmd Msg )
@@ -54,6 +58,11 @@ type Msg
     | NoOp
 
 
+subscriptions : Model -> Sub Msg
+subscriptions (Model model) =
+    Sub.none
+
+
 
 -- TRANSITION
 
@@ -64,7 +73,7 @@ update session msg (Model model) =
         case msg of
             GotStuff _ ->
                 ( model
-                , ModalAsk.open (ModalVariant.SignInModal ())
+                , ModalAsk.open (ModalRoute.SignInModal ())
                 )
 
             GotOtherStuff _ ->
@@ -84,9 +93,9 @@ update session msg (Model model) =
 -- OUTPUT
 
 
-view : Session -> Model -> PageView Msg
+view : Session -> Model -> Template.Content Msg
 view session (Model model) =
-    PageView.make (viewContent session model)
+    Template.content ( "Profile", viewContent session model )
 
 
 viewContent : Session -> Internal -> Html Msg
@@ -133,12 +142,3 @@ viewTableHeaderCell name =
 viewTableCell : String -> Html Msg
 viewTableCell value =
     Html.div [ Attributes.class "p-2 bg-white" ] [ Html.text value ]
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions (Model model) =
-    Sub.none

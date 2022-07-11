@@ -6,7 +6,7 @@ import Html exposing (Html)
 import Html.Attributes as Attributes
 import Modal.EditProfile as EditProfile
 import Modal.SignIn as SignIn
-import Modal.Variant as ModalVariant exposing (Variant)
+import ModalRoute exposing (ModalRoute)
 import Session exposing (Session)
 
 
@@ -24,25 +24,25 @@ type Modal
 -- INITIAL STATE
 
 
-init : Maybe Variant -> ( Modal, Cmd Msg )
-init maybeVariant =
-    case maybeVariant of
-        Just variant ->
-            initVariant variant Hidden
+init : Maybe ModalRoute -> ( Modal, Cmd Msg )
+init maybeModalRoute =
+    case maybeModalRoute of
+        Just modalRoute ->
+            initModalRoute modalRoute Hidden
 
         Nothing ->
             ( Hidden, Cmd.none )
 
 
-initVariant : Variant -> Modal -> ( Modal, Cmd Msg )
-initVariant variant modal =
+initModalRoute : ModalRoute -> Modal -> ( Modal, Cmd Msg )
+initModalRoute modalRoute modal =
     if modal == Hidden then
-        case variant of
-            ModalVariant.SignInModal _ ->
+        case modalRoute of
+            ModalRoute.SignInModal _ ->
                 SignIn.init
                     |> Tuple.mapBoth SignIn (Cmd.map SignInMsg)
 
-            ModalVariant.EditProfileModal _ ->
+            ModalRoute.EditProfileModal _ ->
                 EditProfile.init
                     |> Tuple.mapBoth EditProfile (Cmd.map EditProfileMsg)
 
@@ -85,8 +85,8 @@ update session msg model =
 updateModalAskExtMsg : ModalAsk.ExtMsg -> Modal -> ( Modal, Cmd Msg )
 updateModalAskExtMsg msg modal =
     case msg of
-        ModalAsk.ToOpen variant ->
-            initVariant variant modal
+        ModalAsk.ToOpen modalRoute ->
+            initModalRoute modalRoute modal
 
         ModalAsk.ToClose ->
             ( Hidden, Cmd.none )
@@ -127,8 +127,8 @@ subscriptions modal =
     Sub.none
 
 
-extMsgs : List (ExternalMsg Msg)
-extMsgs =
+extMsgs : Modal -> List (ExternalMsg Msg)
+extMsgs modal =
     List.concat
         [ [ ModalAsk.extMsg GotModalAskExtMsg ]
         , EditProfile.extMsgs

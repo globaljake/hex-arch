@@ -1,4 +1,4 @@
-module Modal.EditProfile exposing (Model, Msg, extMsgs, init, update, view)
+module Modal.EditProfile exposing (Model, Msg, extMsgs, init, subscriptions, update, view)
 
 import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.ModalAsk as ModalAsk
@@ -20,6 +20,10 @@ type alias Internal =
     { thingForm : ThingForm.Model }
 
 
+
+-- INITIAL STATE
+
+
 init : ( Model, Cmd Msg )
 init =
     let
@@ -38,6 +42,17 @@ init =
 type Msg
     = ThingFormMsg ThingForm.Msg
     | GotThingFormNotifyExtMsg ThingFormNotify.ExtMsg
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
+
+
+extMsgs : List (ExternalMsg Msg)
+extMsgs =
+    [ ThingFormNotify.extMsg GotThingFormNotifyExtMsg
+    ]
 
 
 
@@ -77,18 +92,3 @@ view (Model model) =
                 |> Html.map ThingFormMsg
             ]
         ]
-
-
-
--- SUBSCRIPTIONS
-
-
-subscription : model -> Sub Msg
-subscription model =
-    Sub.none
-
-
-extMsgs : List (ExternalMsg Msg)
-extMsgs =
-    [ ThingFormNotify.extMsg GotThingFormNotifyExtMsg
-    ]

@@ -12,7 +12,6 @@ module Session exposing
 import Browser.Navigation as Navigation
 import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.SessionAsk as SessionAsk
-import Json.Decode as Decode
 import Route
 import Viewer exposing (Viewer)
 
@@ -46,7 +45,27 @@ make navKey_ maybeViewer =
 
 type Msg
     = GotSessionAskExtMsg SessionAsk.ExtMsg
-    | GotRelayError Decode.Error
+
+
+subscriptions : Session -> Sub Msg
+subscriptions session =
+    Sub.batch
+        [ Viewer.onChangeFromOtherTab
+            (\result ->
+                case result of
+                    Ok viewer_ ->
+                        GotSessionAskExtMsg (SessionAsk.UpdateViewer viewer_)
+
+                    Err _ ->
+                        GotSessionAskExtMsg SessionAsk.Clear
+            )
+        ]
+
+
+extMsgs : Session -> List (ExternalMsg Msg)
+extMsgs session =
+    [ SessionAsk.extMsg GotSessionAskExtMsg
+    ]
 
 
 
@@ -58,9 +77,6 @@ update msg session =
     case msg of
         GotSessionAskExtMsg subMsg ->
             updateSessionAskExtMsg subMsg session
-
-        GotRelayError err ->
-            ( session, Cmd.none )
 
 
 updateSessionAskExtMsg : SessionAsk.ExtMsg -> Session -> ( Session, Cmd Msg )
@@ -105,28 +121,3 @@ viewer session =
 
         Guest _ ->
             Nothing
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Session -> Sub Msg
-subscriptions session =
-    Sub.batch
-        [ Viewer.onChangeFromOtherTab
-            (\x ->
-                case x of
-                    Ok viewer_ ->
-                        GotSessionAskExtMsg (SessionAsk.UpdateViewer viewer_)
-
-                    Err err ->
-                        GotRelayError err
-            )
-        ]
-
-
-extMsgs : List (ExternalMsg Msg)
-extMsgs =
-    [ SessionAsk.extMsg GotSessionAskExtMsg
-    ]

@@ -1,4 +1,4 @@
-module Ui.ThingForm exposing (Model, Msg, init, update, view)
+module Ui.ThingForm exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api.HexArch.Data.Thing as Thing exposing (Thing)
 import ExternalMsg.ThingFormNotify as ThingFormNotify
@@ -32,6 +32,11 @@ init =
 
 type Msg
     = ClickedButtonToGrabThing
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
 
@@ -69,12 +74,3 @@ view model =
                 ]
             ]
         ]
-
-
-
--- SUBSCRIPTIONS
-
-
-subscription : model -> Sub Msg
-subscription model =
-    Sub.none

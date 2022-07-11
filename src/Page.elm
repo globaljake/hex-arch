@@ -1,4 +1,4 @@
-module Page exposing (Msg, Page, extMsgs, init, layout, subscriptions, update)
+module Page exposing (Msg, Page, extMsgs, init, subscriptions, title, update, view)
 
 import ExternalMsg exposing (ExternalMsg)
 import ExternalMsg.SessionAsk as SessionAsk
@@ -9,7 +9,9 @@ import Page.NotFound as NotFound
 import Page.Profile as Profile
 import Route as Route exposing (Route)
 import Session as Session exposing (Session)
-import Ui.PageView as PageView exposing (PageView)
+import Ui.Header as Header
+import Ui.Nav as Nav
+import Ui.Template as Template exposing (Template)
 import Url exposing (Url)
 
 
@@ -50,8 +52,6 @@ init url session =
                         |> Tuple.mapBoth Profile (Cmd.map ProfileMsg)
 
         Nothing ->
-            -- Dashboard.init session
-            --     |> Tuple.mapBoth Dashboard (Cmd.map DashboardMsg)
             Login.init session
                 |> Tuple.mapBoth Login (Cmd.map LoginMsg)
 
@@ -61,7 +61,8 @@ init url session =
 
 
 type Msg
-    = LoginMsg Login.Msg
+    = ClickedBack
+    | LoginMsg Login.Msg
     | DashboardMsg Dashboard.Msg
     | ProfileMsg Profile.Msg
 
@@ -73,6 +74,9 @@ type Msg
 update : Session -> Msg -> Page -> ( Page, Cmd Msg )
 update session msg page =
     case ( msg, page ) of
+        ( ClickedBack, _ ) ->
+            ( page, Route.back (Session.navKey session) )
+
         ( LoginMsg subMsg, Login subModel ) ->
             Login.update session subMsg subModel
                 |> Tuple.mapBoth Login (Cmd.map LoginMsg)
@@ -93,51 +97,40 @@ update session msg page =
 -- OUTPUT
 
 
-layout : (Msg -> msg) -> { session : Session, page : Page, viewServices : Html msg } -> ( String, Html msg )
-layout tagger { session, page, viewServices } =
+template : Session -> Page -> Template Msg
+template session page =
     case page of
         NotFound ->
-            ( "Not Found"
-            , NotFound.view
-                |> PageView.view PageView.Blank
-            )
+            Template.blank NotFound.view
 
         Login subModel ->
-            ( "Login"
-            , Login.view session subModel
-                |> PageView.map (tagger << LoginMsg)
-                |> PageView.view PageView.Blank
-            )
+            Login.view session subModel
+                |> Template.mapContent LoginMsg
+                |> Template.blank
 
         Dashboard subModel ->
-            ( "Dashboard"
-            , Dashboard.view session subModel
-                |> PageView.map (tagger << DashboardMsg)
-                |> PageView.view
-                    (PageView.StandardWithSidebarNav
-                        { header = "Dashboard"
-                        , activeRoute = Just Route.Dashboard
-                        , viewServices = viewServices
-                        }
-                    )
-            )
+            Dashboard.view session subModel
+                |> Template.mapContent DashboardMsg
+                |> Template.standard
+                    (Nav.make (Just Route.Dashboard))
+                    (Header.make "Dashboard" (Just ClickedBack))
 
         Profile subModel ->
-            ( "Profile"
-            , Profile.view session subModel
-                |> PageView.map (tagger << ProfileMsg)
-                |> PageView.view
-                    (PageView.StandardWithSidebarNav
-                        { header = "Profile"
-                        , activeRoute = Just Route.Profile
-                        , viewServices = viewServices
-                        }
-                    )
-            )
+            Profile.view session subModel
+                |> Template.mapContent ProfileMsg
+                |> Template.standard
+                    (Nav.make (Just Route.Profile))
+                    (Header.make "Profile" (Just ClickedBack))
 
 
+title : Session -> Page -> String
+title session page =
+    Template.toTitle (template session page)
 
--- SUBSCRIPTIONS
+
+view : Session -> Page -> Html Msg
+view session page =
+    Template.toHtml (template session page)
 
 
 subscriptions : Page -> Sub Msg
@@ -159,13 +152,18 @@ subscriptions page =
                 |> Sub.map ProfileMsg
 
 
+extMsgs : Page -> List (ExternalMsg Msg)
+extMsgs page =
+    case page of
+        NotFound ->
+            []
 
--- RELAY
+        Login subModel ->
+            []
 
+        Dashboard subModel ->
+            Dashboard.extMsgs subModel
+                |> List.map (ExternalMsg.map DashboardMsg)
 
-extMsgs : List (ExternalMsg Msg)
-extMsgs =
-    List.concat
-        [ Dashboard.extMsgs
-            |> List.map (ExternalMsg.map DashboardMsg)
-        ]
+        Profile subModel ->
+            []
